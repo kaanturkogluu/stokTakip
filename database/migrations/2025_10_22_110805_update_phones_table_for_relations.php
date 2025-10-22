@@ -17,10 +17,9 @@ return new class extends Migration
             
             // Add foreign key columns
             $table->foreignId('brand_id')->constrained()->onDelete('cascade');
-            $table->foreignId('model_id')->constrained('phone_models')->onDelete('cascade');
+            $table->foreignId('phone_model_id')->constrained('phone_models')->onDelete('cascade');
             $table->foreignId('color_id')->constrained()->onDelete('cascade');
             $table->foreignId('storage_id')->constrained()->onDelete('cascade');
-            $table->foreignId('memory_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('ram_id')->constrained()->onDelete('cascade');
             $table->foreignId('screen_id')->constrained()->onDelete('cascade');
             $table->foreignId('camera_id')->constrained()->onDelete('cascade');
@@ -28,7 +27,7 @@ return new class extends Migration
             
             // Rename price to purchase_price and add sale_price
             $table->renameColumn('price', 'purchase_price');
-            $table->decimal('sale_price', 10, 2)->after('purchase_price');
+            $table->decimal('sale_price', 10, 2)->nullable()->after('purchase_price');
         });
     }
 
@@ -40,16 +39,15 @@ return new class extends Migration
         Schema::table('phones', function (Blueprint $table) {
             // Remove foreign key columns
             $table->dropForeign(['brand_id']);
-            $table->dropForeign(['model_id']);
+            $table->dropForeign(['phone_model_id']);
             $table->dropForeign(['color_id']);
             $table->dropForeign(['storage_id']);
-            $table->dropForeign(['memory_id']);
             $table->dropForeign(['ram_id']);
             $table->dropForeign(['screen_id']);
             $table->dropForeign(['camera_id']);
             $table->dropForeign(['battery_id']);
             
-            $table->dropColumn(['brand_id', 'model_id', 'color_id', 'storage_id', 'memory_id', 'ram_id', 'screen_id', 'camera_id', 'battery_id']);
+            $table->dropColumn(['brand_id', 'phone_model_id', 'color_id', 'storage_id', 'ram_id', 'screen_id', 'camera_id', 'battery_id']);
             
             // Add back old columns
             $table->string('brand');

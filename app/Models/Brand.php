@@ -45,4 +45,9 @@ class Brand extends Model
     {
         return $this->hasManyThrough(Phone::class, PhoneModel::class);
     }
+
+    public function colors()
+    {
+        return $this->belongsToMany(Color::class, 'brand_color');
+    }
 }

@@ -9,7 +9,6 @@ use App\Models\Brand;
 use App\Models\PhoneModel;
 use App\Models\Color;
 use App\Models\Storage;
-use App\Models\Memory;
 use App\Models\Ram;
 use App\Models\Screen;
 use App\Models\Camera;
@@ -53,6 +52,99 @@ class AdminController extends Controller
         return view('admin.dashboard', compact('phones', 'totalPhones', 'featuredPhones'));
     }
 
+    public function phones(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $query = Phone::with(['brand', 'phoneModel', 'color', 'storage', 'ram', 'screen', 'camera', 'battery']);
+
+        // Arama fonksiyonalitesi
+        if ($request->filled('search')) {
+            $searchTerm = $request->get('search');
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('name', 'LIKE', "%{$searchTerm}%")
+                  ->orWhere('stock_serial', 'LIKE', "%{$searchTerm}%");
+            });
+        }
+
+        // Satış durumu filtresi
+        if ($request->filled('sale_status_filter')) {
+            $saleStatus = $request->get('sale_status_filter');
+            if ($saleStatus === 'sold') {
+                $query->where('is_sold', true);
+            } elseif ($saleStatus === 'not_sold') {
+                $query->where('is_sold', false);
+            }
+        }
+
+        // Durum filtresi
+        if ($request->filled('condition_filter')) {
+            $query->where('condition', $request->get('condition_filter'));
+        }
+
+        // Öne çıkan filtresi
+        if ($request->filled('featured_filter')) {
+            $query->where('is_featured', $request->get('featured_filter'));
+        }
+
+        $phones = $query->orderBy('created_at', 'desc')->paginate(25);
+
+        return view('admin.phones.index', compact('phones'));
+    }
+
+    public function getPhoneModelsByBrand(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $brandId = $request->get('brand_id');
+        
+        if (!$brandId) {
+            return response()->json(['models' => []]);
+        }
+
+        $models = PhoneModel::where('brand_id', $brandId)
+                           ->where('is_active', true)
+                           ->select('id', 'name')
+                           ->get();
+
+        return response()->json(['models' => $models]);
+    }
+
+    public function getColorsByBrand(Request $request)
+    {
+        try {
+            if (!session('admin_logged_in')) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $brandId = $request->get('brand_id');
+            
+            if (!$brandId) {
+                return response()->json(['colors' => []]);
+            }
+
+            $brand = Brand::find($brandId);
+            if (!$brand) {
+                return response()->json(['colors' => []]);
+            }
+
+            // Markaya ait renkleri getir
+            $colors = $brand->colors()
+                           ->where('is_active', true)
+                           ->select('colors.id', 'colors.name', 'colors.hex_code')
+                           ->get();
+
+            return response()->json(['colors' => $colors]);
+        } catch (\Exception $e) {
+            \Log::error('getColorsByBrand error: ' . $e->getMessage());
+            return response()->json(['error' => 'Server error'], 500);
+        }
+    }
+
     public function logout()
     {
         session()->forget('admin_logged_in');
@@ -67,18 +159,16 @@ class AdminController extends Controller
 
         // Veritabanından verileri çek
         $brands = Brand::where('is_active', true)->get();
-        $phoneModels = PhoneModel::where('is_active', true)->get();
         $colors = Color::where('is_active', true)->get();
         $storages = Storage::where('is_active', true)->get();
-        $memories = Memory::where('is_active', true)->get();
         $rams = Ram::where('is_active', true)->get();
         $screens = Screen::where('is_active', true)->get();
         $cameras = Camera::where('is_active', true)->get();
         $batteries = Battery::where('is_active', true)->get();
 
         return view('admin.phones.create', compact(
-            'brands', 'phoneModels', 'colors', 'storages', 
-            'memories', 'rams', 'screens', 'cameras', 'batteries'
+            'brands', 'colors', 'storages', 
+            'rams', 'screens', 'cameras', 'batteries'
         ));
     }
 
@@ -91,35 +181,163 @@ class AdminController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
+            'purchase_price' => 'required|numeric|min:0',
+            'sale_price' => 'nullable|numeric|min:0',
             'brand_id' => 'required|exists:brands,id',
             'phone_model_id' => 'required|exists:phone_models,id',
             'color_id' => 'required|exists:colors,id',
             'storage_id' => 'required|exists:storages,id',
-            'memory_id' => 'nullable|exists:memories,id',
             'ram_id' => 'required|exists:rams,id',
             'screen_id' => 'required|exists:screens,id',
             'camera_id' => 'required|exists:cameras,id',
             'battery_id' => 'required|exists:batteries,id',
             'condition' => 'required|in:sifir,ikinci_el',
             'origin' => 'required|in:yurtdisi,turkiye',
-            'stock_serial' => 'nullable|string|max:255',
+            'stock_serials' => 'required|string',
             'notes' => 'nullable|string',
             'is_featured' => 'boolean',
             'images' => 'nullable|array',
             'images.*' => 'nullable|string'
         ]);
 
-        $phoneData = $request->all();
+        // Seri numaralarını decode et
+        $stockSerials = json_decode($request->stock_serials, true);
+        
+        if (empty($stockSerials) || !is_array($stockSerials)) {
+            return redirect()->back()->withErrors(['stock_serials' => 'En az bir seri numarası eklemelisiniz.'])->withInput();
+        }
+
+        $phoneData = $request->except(['stock_serials']);
         
         // Default image if no images provided
         if (empty($phoneData['images'])) {
             $phoneData['images'] = ['/images/default-phone.svg'];
         }
 
-        Phone::create($phoneData);
+        $createdCount = 0;
+        
+        // Her seri numarası için ayrı kayıt oluştur
+        foreach ($stockSerials as $serialNumber) {
+            $phoneData['stock_serial'] = $serialNumber;
+            Phone::create($phoneData);
+            $createdCount++;
+        }
 
-        return redirect()->route('admin.dashboard')->with('success', 'Telefon başarıyla eklendi!');
+        $message = $createdCount > 1 
+            ? "{$createdCount} adet telefon başarıyla eklendi!" 
+            : "Telefon başarıyla eklendi!";
+
+        return redirect()->route('admin.dashboard')->with('success', $message);
+    }
+
+    public function show(Phone $phone)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        // Telefon bilgilerini ilişkileriyle birlikte yükle
+        $phone->load(['brand', 'phoneModel', 'color', 'storage', 'ram', 'screen', 'camera', 'battery']);
+
+        return view('admin.phones.show', compact('phone'));
+    }
+
+    public function edit(Phone $phone)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        // Telefon bilgilerini ilişkileriyle birlikte yükle
+        $phone->load(['brand', 'phoneModel', 'color', 'storage', 'ram', 'screen', 'camera', 'battery']);
+
+        // Form için gerekli verileri yükle
+        $brands = Brand::where('is_active', true)->orderBy('name')->get();
+        $colors = Color::where('is_active', true)->orderBy('name')->get();
+        $storages = Storage::where('is_active', true)->orderBy('capacity_gb')->get();
+        $rams = Ram::where('is_active', true)->orderBy('capacity_gb')->get();
+        $screens = Screen::where('is_active', true)->orderBy('size_inches')->get();
+        $cameras = Camera::where('is_active', true)->orderBy('name')->get();
+        $batteries = Battery::where('is_active', true)->orderBy('capacity_mah')->get();
+
+        // Seçili markaya ait modelleri yükle
+        $phoneModels = PhoneModel::where('brand_id', $phone->brand_id)
+                                ->where('is_active', true)
+                                ->orderBy('name')
+                                ->get();
+
+        // Seçili markaya ait renkleri yükle
+        $brandColors = $phone->brand->colors()
+                                   ->where('is_active', true)
+                                   ->orderBy('name')
+                                   ->get();
+
+        return view('admin.phones.edit', compact(
+            'phone', 'brands', 'colors', 'storages', 'rams', 'screens', 'cameras', 'batteries',
+            'phoneModels', 'brandColors'
+        ));
+    }
+
+    public function update(Request $request, Phone $phone)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'purchase_price' => 'required|numeric|min:0',
+            'sale_price' => 'nullable|numeric|min:0',
+            'brand_id' => 'required|exists:brands,id',
+            'phone_model_id' => 'required|exists:phone_models,id',
+            'color_id' => 'required|exists:colors,id',
+            'storage_id' => 'required|exists:storages,id',
+            'ram_id' => 'required|exists:rams,id',
+            'screen_id' => 'required|exists:screens,id',
+            'camera_id' => 'required|exists:cameras,id',
+            'battery_id' => 'required|exists:batteries,id',
+            'condition' => 'required|in:sifir,ikinci_el',
+            'origin' => 'required|in:yurtdisi,turkiye',
+            'stock_serial' => 'required|string|max:255',
+            'notes' => 'nullable|string',
+            'is_featured' => 'boolean',
+            'is_sold' => 'boolean',
+            'sold_at' => 'nullable|date',
+            'images' => 'nullable|array',
+            'images.*' => 'nullable|string'
+        ]);
+
+        $phoneData = $request->all();
+        $phoneData['is_featured'] = $request->has('is_featured');
+        $phoneData['is_sold'] = $request->has('is_sold');
+
+        // Satış tarihi kontrolü
+        if (!$phoneData['is_sold']) {
+            $phoneData['sold_at'] = null;
+        } elseif ($phoneData['is_sold'] && !$phone->sold_at) {
+            $phoneData['sold_at'] = now();
+        }
+
+        $phone->update($phoneData);
+
+        return redirect()->route('admin.phones.show', $phone)->with('success', 'Telefon başarıyla güncellendi!');
+    }
+
+    public function destroy(Phone $phone)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        try {
+            $phoneName = $phone->name;
+            $phone->delete();
+            
+            return redirect()->route('admin.phones.index')->with('success', "{$phoneName} başarıyla silindi!");
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Telefon silinirken bir hata oluştu: ' . $e->getMessage());
+        }
     }
 
     // Data Management Pages
@@ -173,15 +391,6 @@ class AdminController extends Controller
         return view('admin.data.storages', compact('storages'));
     }
 
-    public function memories()
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $memories = Memory::withCount('phones')->get();
-        return view('admin.data.memories', compact('memories'));
-    }
 
     public function rams()
     {
@@ -257,7 +466,13 @@ class AdminController extends Controller
             return redirect()->route('admin.login');
         }
 
-        return view('admin.data.brands.edit', compact('brand'));
+        // Brand'i phone models count ile birlikte yükle
+        $brand->loadCount('phoneModels');
+        
+        $colors = Color::where('is_active', true)->get();
+        $selectedColors = $brand->colors->pluck('id')->toArray();
+
+        return view('admin.data.brands.edit', compact('brand', 'colors', 'selectedColors'));
     }
 
     public function updateBrand(Request $request, Brand $brand)
@@ -270,13 +485,22 @@ class AdminController extends Controller
             'name' => 'required|string|max:255|unique:brands,name,' . $brand->id,
             'description' => 'nullable|string',
             'logo' => 'nullable|string|max:255',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
+            'colors' => 'nullable|array',
+            'colors.*' => 'exists:colors,id'
         ]);
 
         $data = $request->all();
         $data['is_active'] = $request->has('is_active');
 
         $brand->update($data);
+
+        // Renk eşleştirmelerini güncelle
+        if ($request->has('colors')) {
+            $brand->colors()->sync($request->colors);
+        } else {
+            $brand->colors()->detach();
+        }
 
         return redirect()->route('admin.data.brands')->with('success', 'Marka başarıyla güncellendi!');
     }
@@ -391,31 +615,6 @@ class AdminController extends Controller
         return redirect()->route('admin.data.storages')->with('success', 'Depolama başarıyla güncellendi!');
     }
 
-    public function createMemory()
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        return view('admin.data.memories.create');
-    }
-
-    public function storeMemory(Request $request)
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255|unique:memories',
-            'capacity_gb' => 'required|integer|min:1',
-            'is_active' => 'boolean'
-        ]);
-
-        Memory::create($request->all());
-
-        return redirect()->route('admin.data.memories')->with('success', 'Hafıza başarıyla eklendi!');
-    }
 
     public function createRam()
     {

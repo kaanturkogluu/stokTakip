@@ -70,13 +70,9 @@
                     <select id="phone_model_id" 
                             name="phone_model_id" 
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('phone_model_id') border-red-500 @enderror"
-                            required>
-                        <option value="">Model Seçiniz</option>
-                        @foreach($phoneModels as $phoneModel)
-                            <option value="{{ $phoneModel->id }}" {{ old('phone_model_id') == $phoneModel->id ? 'selected' : '' }}>
-                                {{ $phoneModel->name }}
-                            </option>
-                        @endforeach
+                            required
+                            disabled>
+                        <option value="">Önce marka seçiniz</option>
                     </select>
                     @error('phone_model_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -85,9 +81,17 @@
 
                 <!-- Color -->
                 <div>
-                    <label for="color_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-palette mr-2"></i>Renk *
-                    </label>
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="color_id" class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-palette mr-2"></i>Renk *
+                        </label>
+                        <button type="button" 
+                                id="color-filter-btn" 
+                                class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition duration-200"
+                                disabled>
+                            <i class="fas fa-filter mr-1"></i>Filtrele
+                        </button>
+                    </div>
                     <select id="color_id" 
                             name="color_id" 
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('color_id') border-red-500 @enderror"
@@ -106,22 +110,40 @@
             </div>
 
             <!-- Price and Condition -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Price -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <!-- Purchase Price -->
                 <div>
-                    <label for="price" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="purchase_price" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-lira-sign mr-2"></i>Alış Fiyat (₺) *
                     </label>
                     <input type="number" 
-                           id="price" 
-                           name="price" 
-                           value="{{ old('price') }}"
+                           id="purchase_price" 
+                           name="purchase_price" 
+                           value="{{ old('purchase_price') }}"
                            step="0.01"
                            min="0"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('price') border-red-500 @enderror"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('purchase_price') border-red-500 @enderror"
                            placeholder="89999.00"
                            required>
-                    @error('price')
+                    @error('purchase_price')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Sale Price -->
+                <div>
+                    <label for="sale_price" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-tag mr-2"></i>Satış Fiyat (₺)
+                    </label>
+                    <input type="number" 
+                           id="sale_price" 
+                           name="sale_price" 
+                           value="{{ old('sale_price') }}"
+                           step="0.01"
+                           min="0"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('sale_price') border-red-500 @enderror"
+                           placeholder="99999.00">
+                    @error('sale_price')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
@@ -186,25 +208,6 @@
                     @enderror
                 </div>
 
-                <!-- Memory -->
-                <div>
-                    <label for="memory_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-memory mr-2"></i>Hafıza
-                    </label>
-                    <select id="memory_id" 
-                            name="memory_id" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('memory_id') border-red-500 @enderror">
-                        <option value="">Hafıza Seçiniz (Opsiyonel)</option>
-                        @foreach($memories as $memory)
-                            <option value="{{ $memory->id }}" {{ old('memory_id') == $memory->id ? 'selected' : '' }}>
-                                {{ $memory->name }} ({{ $memory->capacity_gb }}GB)
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('memory_id')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
 
                 <!-- RAM -->
                 <div>
@@ -294,18 +297,37 @@
 
             <!-- Additional Information -->
             <div>
-                <!-- Stock Serial -->
+                <!-- Stock Serial Numbers -->
                 <div>
-                    <label for="stock_serial" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-barcode mr-2"></i>Stok Seri No
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-barcode mr-2"></i>Stok Seri Numaraları
                     </label>
-                    <input type="text" 
-                           id="stock_serial" 
-                           name="stock_serial" 
-                           value="{{ old('stock_serial') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('stock_serial') border-red-500 @enderror"
-                           placeholder="MT001234">
-                    @error('stock_serial')
+                    
+                    <!-- Seri No Ekleme Alanı -->
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" 
+                               id="new_serial_input" 
+                               class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="MT001234">
+                        <button type="button" 
+                                id="add_serial_btn"
+                                class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 flex items-center">
+                            <i class="fas fa-plus mr-2"></i>Ekle
+                        </button>
+                    </div>
+                    
+                    <!-- Eklenen Seri Numaraları Listesi -->
+                    <div id="serial_numbers_list" class="space-y-2 mb-3">
+                        <!-- Dinamik olarak eklenecek -->
+                    </div>
+                    
+                    <!-- Hidden input for form submission -->
+                    <input type="hidden" id="stock_serials_hidden" name="stock_serials" value="">
+                    
+                    @error('stock_serials')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                    @error('stock_serials.*')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
@@ -434,6 +456,251 @@
     // Sayfa yüklendiğinde butonları güncelle
     document.addEventListener('DOMContentLoaded', function() {
         updateRemoveButtons();
+        
+        // Marka seçimi değiştiğinde modelleri yükle
+        const brandSelect = document.getElementById('brand_id');
+        const modelSelect = document.getElementById('phone_model_id');
+        const colorSelect = document.getElementById('color_id');
+        const colorFilterBtn = document.getElementById('color-filter-btn');
+        
+        // Tüm renkleri sakla (filtreleme için)
+        const allColors = Array.from(colorSelect.options).map(option => ({
+            value: option.value,
+            text: option.textContent
+        }));
+        
+        let isFiltered = false;
+        
+        brandSelect.addEventListener('change', function() {
+            const brandId = this.value;
+            
+            // Model seçimini temizle ve devre dışı bırak
+            modelSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+            modelSelect.disabled = true;
+            
+            // Renk seçimini temizle ve devre dışı bırak
+            colorSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+            colorSelect.disabled = true;
+            
+            // Renk filtresi butonunu güncelle
+            if (brandId) {
+                colorFilterBtn.disabled = false;
+                colorFilterBtn.innerHTML = '<i class="fas fa-filter mr-1"></i>Filtrele';
+                colorFilterBtn.className = 'text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition duration-200';
+                isFiltered = false;
+            } else {
+                colorFilterBtn.disabled = true;
+                colorFilterBtn.innerHTML = '<i class="fas fa-filter mr-1"></i>Filtrele';
+                colorFilterBtn.className = 'text-xs bg-gray-100 text-gray-500 px-3 py-1 rounded-full';
+                isFiltered = false;
+            }
+            
+            if (brandId) {
+                // AJAX ile modelleri getir
+                fetch(`{{ route('admin.phones.models-by-brand') }}?brand_id=${brandId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        modelSelect.innerHTML = '<option value="">Model Seçiniz</option>';
+                        
+                        if (data.models && data.models.length > 0) {
+                            data.models.forEach(model => {
+                                const option = document.createElement('option');
+                                option.value = model.id;
+                                option.textContent = model.name;
+                                modelSelect.appendChild(option);
+                            });
+                            modelSelect.disabled = false;
+                        } else {
+                            modelSelect.innerHTML = '<option value="">Bu markaya ait model bulunamadı</option>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        modelSelect.innerHTML = '<option value="">Hata oluştu</option>';
+                    });
+                
+                // AJAX ile renkleri getir
+                fetch(`{{ route('admin.phones.colors-by-brand') }}?brand_id=${brandId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        colorSelect.innerHTML = '<option value="">Renk Seçiniz</option>';
+                        
+                        if (data.colors && data.colors.length > 0) {
+                            data.colors.forEach(color => {
+                                const option = document.createElement('option');
+                                option.value = color.id;
+                                option.textContent = color.name;
+                                colorSelect.appendChild(option);
+                            });
+                            colorSelect.disabled = false;
+                        } else {
+                            colorSelect.innerHTML = '<option value="">Bu markaya ait renk bulunamadı</option>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        colorSelect.innerHTML = '<option value="">Hata oluştu</option>';
+                    });
+            } else {
+                modelSelect.innerHTML = '<option value="">Önce marka seçiniz</option>';
+                colorSelect.innerHTML = '<option value="">Önce marka seçiniz</option>';
+            }
+        });
+        
+        // Renk filtresi butonu
+        colorFilterBtn.addEventListener('click', function() {
+            const brandId = brandSelect.value;
+            
+            if (!brandId) {
+                alert('Önce marka seçiniz');
+                return;
+            }
+            
+            if (!isFiltered) {
+                // Filtrele
+                colorSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+                colorSelect.disabled = true;
+                
+                fetch(`{{ route('admin.phones.colors-by-brand') }}?brand_id=${brandId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        colorSelect.innerHTML = '<option value="">Renk Seçiniz</option>';
+                        
+                        if (data.colors && data.colors.length > 0) {
+                            data.colors.forEach(color => {
+                                const option = document.createElement('option');
+                                option.value = color.id;
+                                option.textContent = color.name;
+                                colorSelect.appendChild(option);
+                            });
+                            colorSelect.disabled = false;
+                            
+                            // Buton metnini güncelle
+                            colorFilterBtn.innerHTML = '<i class="fas fa-undo mr-1"></i>Sıfırla';
+                            colorFilterBtn.className = 'text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full hover:bg-orange-200 transition duration-200';
+                            isFiltered = true;
+                        } else {
+                            colorSelect.innerHTML = '<option value="">Bu markaya ait renk bulunamadı</option>';
+                            colorSelect.disabled = false;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        colorSelect.innerHTML = '<option value="">Hata oluştu</option>';
+                        colorSelect.disabled = false;
+                    });
+            } else {
+                // Sıfırla - tüm renkleri geri yükle
+                colorSelect.innerHTML = '';
+                allColors.forEach(color => {
+                    const option = document.createElement('option');
+                    option.value = color.value;
+                    option.textContent = color.text;
+                    colorSelect.appendChild(option);
+                });
+                colorSelect.disabled = false;
+                
+                // Buton metnini güncelle
+                colorFilterBtn.innerHTML = '<i class="fas fa-filter mr-1"></i>Filtrele';
+                colorFilterBtn.className = 'text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition duration-200';
+                isFiltered = false;
+            }
+        });
+        
+        // Seri numarası ekleme fonksiyonları
+        const newSerialInput = document.getElementById('new_serial_input');
+        const addSerialBtn = document.getElementById('add_serial_btn');
+        const serialNumbersList = document.getElementById('serial_numbers_list');
+        const stockSerialsHidden = document.getElementById('stock_serials_hidden');
+        let serialNumbers = [];
+        
+        // Enter tuşu ile ekleme
+        newSerialInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addSerialNumber();
+            }
+        });
+        
+        // Ekle butonu ile ekleme
+        addSerialBtn.addEventListener('click', function() {
+            addSerialNumber();
+        });
+        
+        function addSerialNumber() {
+            const serialNumber = newSerialInput.value.trim();
+            
+            if (!serialNumber) {
+                alert('Lütfen seri numarası giriniz');
+                return;
+            }
+            
+            if (serialNumbers.includes(serialNumber)) {
+                alert('Bu seri numarası zaten eklenmiş');
+                return;
+            }
+            
+            // Seri numarasını listeye ekle
+            serialNumbers.push(serialNumber);
+            
+            // UI'da göster
+            const serialItem = document.createElement('div');
+            serialItem.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg border';
+            serialItem.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-barcode text-gray-500 mr-2"></i>
+                    <span class="font-mono text-sm">${serialNumber}</span>
+                </div>
+                <button type="button" 
+                        class="text-red-500 hover:text-red-700 transition duration-200 remove-serial-btn"
+                        data-serial="${serialNumber}">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            serialNumbersList.appendChild(serialItem);
+            
+            // Input'u temizle
+            newSerialInput.value = '';
+            
+            // Hidden input'u güncelle
+            updateHiddenInput();
+            
+            // Kaldır butonuna event listener ekle
+            serialItem.querySelector('.remove-serial-btn').addEventListener('click', function() {
+                const serialToRemove = this.getAttribute('data-serial');
+                removeSerialNumber(serialToRemove);
+            });
+        }
+        
+        function removeSerialNumber(serialNumber) {
+            // Array'den kaldır
+            serialNumbers = serialNumbers.filter(s => s !== serialNumber);
+            
+            // UI'dan kaldır
+            const serialItems = serialNumbersList.querySelectorAll('.remove-serial-btn');
+            serialItems.forEach(item => {
+                if (item.getAttribute('data-serial') === serialNumber) {
+                    item.closest('div').remove();
+                }
+            });
+            
+            // Hidden input'u güncelle
+            updateHiddenInput();
+        }
+        
+        function updateHiddenInput() {
+            stockSerialsHidden.value = JSON.stringify(serialNumbers);
+        }
+        
+        // Form gönderilmeden önce kontrol
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (serialNumbers.length === 0) {
+                e.preventDefault();
+                alert('En az bir seri numarası eklemelisiniz');
+                return false;
+            }
+        });
     });
 </script>
 @endsection

@@ -20,4 +20,9 @@ class Color extends Model
     {
         return $this->hasMany(Phone::class);
     }
+
+    public function brands()
+    {
+        return $this->belongsToMany(Brand::class, 'brand_color');
+    }
 }

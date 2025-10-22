@@ -6,6 +6,7 @@
     <title>@yield('title', 'Admin Panel - Macrotech')</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     @stack('styles')
 </head>
 <body class="bg-gray-100">
@@ -25,8 +26,12 @@
                         <i class="fas fa-tachometer-alt mr-3"></i>
                         Dashboard
                     </a>
-                    <a href="{{ route('admin.phones.create') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.phones.*') ? 'bg-gray-700 text-white' : '' }}">
-                        <i class="fas fa-mobile-alt mr-3"></i>
+                    <a href="{{ route('admin.phones.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.phones.index') ? 'bg-gray-700 text-white' : '' }}">
+                        <i class="fas fa-list mr-3"></i>
+                        Telefonlar
+                    </a>
+                    <a href="{{ route('admin.phones.create') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.phones.create') ? 'bg-gray-700 text-white' : '' }}">
+                        <i class="fas fa-plus mr-3"></i>
                         Telefon Ekle
                     </a>
                     

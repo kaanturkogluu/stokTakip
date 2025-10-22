@@ -80,6 +80,42 @@
                 @endif
             </div>
 
+            <!-- Color Matching -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-3">
+                    <i class="fas fa-palette mr-2"></i>Renk Eşleştirmesi
+                </label>
+                <p class="text-sm text-gray-600 mb-4">Bu marka ile eşleştirilecek renkleri seçiniz. Bir marka birden fazla renk ile eşleşebilir.</p>
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    @foreach($colors as $color)
+                        <div class="flex items-center space-x-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200">
+                            <input type="checkbox" 
+                                   id="color_{{ $color->id }}" 
+                                   name="colors[]" 
+                                   value="{{ $color->id }}"
+                                   {{ in_array($color->id, old('colors', $selectedColors)) ? 'checked' : '' }}
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="color_{{ $color->id }}" class="flex items-center space-x-2 cursor-pointer">
+                                @if($color->hex_code)
+                                    <div class="w-4 h-4 rounded-full border border-gray-300" style="background-color: {{ $color->hex_code }}"></div>
+                                @else
+                                    <div class="w-4 h-4 rounded-full border border-gray-300 bg-gray-200"></div>
+                                @endif
+                                <span class="text-sm text-gray-700">{{ $color->name }}</span>
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+                
+                @error('colors')
+                    <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
+                @enderror
+                @error('colors.*')
+                    <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
+                @enderror
+            </div>
+
             <!-- Active Status -->
             <div class="flex items-center">
                 <input type="checkbox" 

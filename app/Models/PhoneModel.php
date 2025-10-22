@@ -44,6 +44,6 @@ class PhoneModel extends Model
 
     public function phones()
     {
-        return $this->hasMany(Phone::class, 'model_id');
+        return $this->hasMany(Phone::class, 'phone_model_id');
     }
 }

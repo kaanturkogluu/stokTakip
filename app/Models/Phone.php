@@ -9,18 +9,20 @@ class Phone extends Model
     protected $fillable = [
         'name',
         'description',
-        'price',
+        'purchase_price',
+        'sale_price',
         'brand_id',
         'phone_model_id',
         'color_id',
         'storage_id',
-        'memory_id',
         'ram_id',
         'screen_id',
         'camera_id',
         'battery_id',
         'images',
         'is_featured',
+        'is_sold',
+        'sold_at',
         'stock_serial',
         'condition',
         'origin',
@@ -29,8 +31,11 @@ class Phone extends Model
 
     protected $casts = [
         'images' => 'array',
-        'price' => 'decimal:2',
-        'is_featured' => 'boolean'
+        'purchase_price' => 'decimal:2',
+        'sale_price' => 'decimal:2',
+        'is_featured' => 'boolean',
+        'is_sold' => 'boolean',
+        'sold_at' => 'datetime'
     ];
 
     // Relationships
@@ -54,10 +59,6 @@ class Phone extends Model
         return $this->belongsTo(Storage::class);
     }
 
-    public function memory()
-    {
-        return $this->belongsTo(Memory::class);
-    }
 
     public function ram()
     {

@@ -69,19 +69,6 @@
             </div>
         </a>
 
-        <!-- Memory Card -->
-        <a href="{{ route('admin.data.memories') }}" class="group bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 rounded-full bg-indigo-100 group-hover:bg-indigo-200 transition-colors duration-300">
-                        <i class="fas fa-memory text-2xl text-indigo-600"></i>
-                    </div>
-                    <i class="fas fa-arrow-right text-gray-400 group-hover:text-indigo-600 transition-colors duration-300"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">Hafıza</h3>
-                <p class="text-gray-600 text-sm">Hafıza kapasitelerini yönetin</p>
-            </div>
-        </a>
 
         <!-- RAM Card -->
         <a href="{{ route('admin.data.rams') }}" class="group bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
@@ -148,7 +135,7 @@
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <div class="text-center">
-                <div class="text-2xl font-bold">9</div>
+                <div class="text-2xl font-bold">8</div>
                 <div class="text-sm text-blue-100">Veri Kategorisi</div>
             </div>
             <div class="text-center">

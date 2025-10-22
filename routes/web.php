@@ -16,8 +16,15 @@ Route::get('/admin', [AdminController::class, 'dashboard'])->name('admin.dashboa
 Route::post('/logout', [AdminController::class, 'logout'])->name('admin.logout');
 
 // Admin Phone Routes
+Route::get('/admin/phones', [AdminController::class, 'phones'])->name('admin.phones.index');
 Route::get('/admin/phones/create', [AdminController::class, 'create'])->name('admin.phones.create');
 Route::post('/admin/phones', [AdminController::class, 'store'])->name('admin.phones.store');
+Route::get('/admin/phones/models-by-brand', [AdminController::class, 'getPhoneModelsByBrand'])->name('admin.phones.models-by-brand');
+Route::get('/admin/phones/colors-by-brand', [AdminController::class, 'getColorsByBrand'])->name('admin.phones.colors-by-brand');
+Route::get('/admin/phones/{phone}', [AdminController::class, 'show'])->name('admin.phones.show');
+Route::get('/admin/phones/{phone}/edit', [AdminController::class, 'edit'])->name('admin.phones.edit');
+Route::put('/admin/phones/{phone}', [AdminController::class, 'update'])->name('admin.phones.update');
+Route::delete('/admin/phones/{phone}', [AdminController::class, 'destroy'])->name('admin.phones.destroy');
 
 // Admin Data Routes
 Route::get('/admin/data', [AdminController::class, 'dataIndex'])->name('admin.data.index');
@@ -29,7 +36,6 @@ Route::get('/admin/data/phone-models/{phoneModel}/edit', [AdminController::class
 Route::put('/admin/data/phone-models/{phoneModel}', [AdminController::class, 'updatePhoneModel'])->name('admin.data.phone-models.update');
 Route::get('/admin/data/colors', [AdminController::class, 'colors'])->name('admin.data.colors');
 Route::get('/admin/data/storages', [AdminController::class, 'storages'])->name('admin.data.storages');
-Route::get('/admin/data/memories', [AdminController::class, 'memories'])->name('admin.data.memories');
 Route::get('/admin/data/rams', [AdminController::class, 'rams'])->name('admin.data.rams');
 Route::get('/admin/data/screens', [AdminController::class, 'screens'])->name('admin.data.screens');
 Route::get('/admin/data/cameras', [AdminController::class, 'cameras'])->name('admin.data.cameras');
@@ -48,8 +54,6 @@ Route::get('/admin/data/storages/create', [AdminController::class, 'createStorag
 Route::post('/admin/data/storages', [AdminController::class, 'storeStorage'])->name('admin.data.storages.store');
 Route::get('/admin/data/storages/{storage}/edit', [AdminController::class, 'editStorage'])->name('admin.data.storages.edit');
 Route::put('/admin/data/storages/{storage}', [AdminController::class, 'updateStorage'])->name('admin.data.storages.update');
-Route::get('/admin/data/memories/create', [AdminController::class, 'createMemory'])->name('admin.data.memories.create');
-Route::post('/admin/data/memories', [AdminController::class, 'storeMemory'])->name('admin.data.memories.store');
 Route::get('/admin/data/rams/create', [AdminController::class, 'createRam'])->name('admin.data.rams.create');
 Route::post('/admin/data/rams', [AdminController::class, 'storeRam'])->name('admin.data.rams.store');
 Route::get('/admin/data/rams/{ram}/edit', [AdminController::class, 'editRam'])->name('admin.data.rams.edit');
