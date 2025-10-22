@@ -1,0 +1,73 @@
+@extends('layouts.app')
+
+@section('title', 'Tüm Telefonlar - Macrotech')
+
+@push('styles')
+<style>
+    .phone-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .phone-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+</style>
+@endpush
+
+@section('content')
+
+    <!-- Header -->
+    <div class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Macrotech Telefon Koleksiyonu</h1>
+            <p class="text-lg text-gray-600">Teknoloji dünyasının en geniş telefon koleksiyonunu keşfedin</p>
+        </div>
+    </div>
+
+    <!-- Phones Grid -->
+    <section class="py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            @if($phones->count() > 0)
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    @foreach($phones as $phone)
+                        <div class="phone-card bg-white rounded-lg shadow-lg overflow-hidden">
+                            <div class="h-64 bg-gray-200 flex items-center justify-center">
+                                @if($phone->images && count($phone->images) > 0)
+                                    <img src="{{ $phone->images[0] }}" alt="{{ $phone->name }}" class="h-full w-full object-cover">
+                                @else
+                                    <i class="fas fa-mobile-alt text-6xl text-gray-400"></i>
+                                @endif
+                            </div>
+                            <div class="p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-2">{{ $phone->name }}</h3>
+                                <div class="space-y-1 mb-4 text-sm">
+                                    <p class="text-gray-600"><strong>Marka:</strong> {{ $phone->brand }}</p>
+                                    <p class="text-gray-600"><strong>Model:</strong> {{ $phone->model }}</p>
+                                    <p class="text-gray-600"><strong>Renk:</strong> {{ $phone->color }}</p>
+                                    <p class="text-gray-600"><strong>Depolama:</strong> {{ $phone->storage }}</p>
+                                    <p class="text-gray-600"><strong>RAM:</strong> {{ $phone->ram }}</p>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xl font-bold text-blue-600">{{ number_format($phone->price, 0, ',', '.') }} ₺</span>
+                                    <a href="{{ route('phones.show', $phone) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-300">
+                                        Detaylar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="text-center py-16">
+                    <i class="fas fa-mobile-alt text-8xl text-gray-300 mb-6"></i>
+                    <h3 class="text-2xl font-semibold text-gray-600 mb-4">Henüz telefon eklenmemiş</h3>
+                    <p class="text-gray-500 mb-8">Yakında harika telefonlar burada olacak!</p>
+                    <a href="{{ route('home') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition duration-300">
+                        Ana Sayfaya Dön
+                    </a>
+                </div>
+            @endif
+        </div>
+    </section>
+
+@endsection

@@ -1,0 +1,20 @@
+<svg width="200" height="80" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- MT Monogram with serif styling -->
+  <g transform="translate(20, 5)">
+    <!-- Letter M with serifs -->
+    <path d="M0 0 L0 50 L6 50 L6 20 L12 30 L18 20 L18 50 L24 50 L24 0 L18 0 L18 15 L12 25 L6 15 L6 0 Z" fill="black"/>
+    
+    <!-- Letter T with serifs and overlapping effect -->
+    <g transform="translate(30, 0)">
+      <!-- T horizontal bar with serifs -->
+      <rect x="0" y="0" width="4" height="8" fill="black"/>
+      <rect x="4" y="0" width="22" height="8" fill="black"/>
+      <rect x="26" y="0" width="4" height="8" fill="black"/>
+      <!-- T vertical bar (overlaps M) -->
+      <rect x="13" y="8" width="8" height="42" fill="black"/>
+    </g>
+  </g>
+  
+  <!-- MACROTECH Text -->
+  <text x="100" y="55" font-family="Arial, sans-serif" font-size="16" font-weight="normal" fill="black" text-anchor="middle">MACROTECH</text>
+</svg>
