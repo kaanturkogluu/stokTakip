@@ -21,7 +21,12 @@ class Phone extends Model
         'os',
         'images',
         'whatsapp_number',
-        'is_featured'
+        'is_featured',
+        'stock_serial',
+        'memory',
+        'condition',
+        'origin',
+        'notes'
     ];
 
     protected $casts = [
