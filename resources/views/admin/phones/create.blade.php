@@ -83,7 +83,7 @@
                 <div>
                     <div class="flex items-center justify-between mb-2">
                         <label for="color_id" class="block text-sm font-medium text-gray-700">
-                            <i class="fas fa-palette mr-2"></i>Renk *
+                            <i class="fas fa-palette mr-2"></i>Renk
                         </label>
                         <button type="button" 
                                 id="color-filter-btn" 
@@ -94,8 +94,7 @@
                     </div>
                     <select id="color_id" 
                             name="color_id" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('color_id') border-red-500 @enderror"
-                            required>
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('color_id') border-red-500 @enderror">
                         <option value="">Renk Seçiniz</option>
                         @foreach($colors as $color)
                             <option value="{{ $color->id }}" {{ old('color_id') == $color->id ? 'selected' : '' }}>
@@ -233,12 +232,11 @@
                 <!-- Screen Size -->
                 <div>
                     <label for="screen_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-mobile-alt mr-2"></i>Ekran Boyutu *
+                        <i class="fas fa-mobile-alt mr-2"></i>Ekran Boyutu
                     </label>
                     <select id="screen_id" 
                             name="screen_id" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('screen_id') border-red-500 @enderror"
-                            required>
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('screen_id') border-red-500 @enderror">
                         <option value="">Ekran Boyutu Seçiniz</option>
                         @foreach($screens as $screen)
                             <option value="{{ $screen->id }}" {{ old('screen_id') == $screen->id ? 'selected' : '' }}>
@@ -254,12 +252,11 @@
                 <!-- Camera -->
                 <div>
                     <label for="camera_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-camera mr-2"></i>Kamera *
+                        <i class="fas fa-camera mr-2"></i>Kamera
                     </label>
                     <select id="camera_id" 
                             name="camera_id" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('camera_id') border-red-500 @enderror"
-                            required>
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('camera_id') border-red-500 @enderror">
                         <option value="">Kamera Seçiniz</option>
                         @foreach($cameras as $camera)
                             <option value="{{ $camera->id }}" {{ old('camera_id') == $camera->id ? 'selected' : '' }}>

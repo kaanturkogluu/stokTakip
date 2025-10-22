@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Macrotech - Telefon Satış - En İyi Fiyatlar')
+@section('title', App\Models\Setting::getValue('site_name') . ' - Telefon Satış - En İyi Fiyatlar')
 
 @push('styles')
 <style>
@@ -41,7 +41,7 @@
                 <!-- Main Heading -->
                 <h1 class="text-5xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight">
                     <span class="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-                        MACROTECH
+                        {{ strtoupper(App\Models\Setting::getValue('site_name')) }}
                     </span>
                     <span class="block text-white">
                         TEKNOLOJİ
@@ -113,7 +113,7 @@
                                     $firstImage = $images && is_array($images) && count($images) > 0 ? $images[0] : null;
                                 @endphp
                                 @if($firstImage)
-                                    <img src="{{ $firstImage }}" alt="{{ $phone->name }}" class="h-full w-full object-cover">
+                                    <img src="{{ $firstImage }}" alt="{{ $phone->name }}" class="h-full w-full object-contain">
                                 @else
                                     <i class="fas fa-mobile-alt text-6xl text-gray-400"></i>
                                 @endif
@@ -121,14 +121,21 @@
                             <div class="p-6">
                                 <h3 class="text-xl font-semibold text-gray-800 mb-2">{{ $phone->name }}</h3>
                                 <div class="space-y-2 mb-4">
-                                    <p class="text-sm text-gray-600"><strong>Marka:</strong> {{ $phone->brand->name ?? 'N/A' }}</p>
-                                    <p class="text-sm text-gray-600"><strong>Model:</strong> {{ $phone->phoneModel->name ?? 'N/A' }}</p>
-                                    <p class="text-sm text-gray-600"><strong>Renk:</strong> {{ $phone->color->name ?? 'N/A' }}</p>
-                                    <p class="text-sm text-gray-600"><strong>Depolama:</strong> {{ $phone->storage->name ?? 'N/A' }}</p>
+                                    @if($phone->brand)
+                                    <p class="text-sm text-gray-600"><strong>Marka:</strong> {{ $phone->brand->name }}</p>
+                                    @endif
+                                    @if($phone->phoneModel)
+                                    <p class="text-sm text-gray-600"><strong>Model:</strong> {{ $phone->phoneModel->name }}</p>
+                                    @endif
+                                    @if($phone->color)
+                                    <p class="text-sm text-gray-600"><strong>Renk:</strong> {{ $phone->color->name }}</p>
+                                    @endif
+                                    @if($phone->storage)
+                                    <p class="text-sm text-gray-600"><strong>Depolama:</strong> {{ $phone->storage->name }}</p>
+                                    @endif
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-2xl font-bold text-blue-600">{{ number_format($phone->sale_price ?? $phone->purchase_price, 0, ',', '.') }} ₺</span>
-                                    <a href="{{ route('phones.show', $phone) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-300">
+                                <div class="flex justify-center">
+                                    <a href="{{ route('phones.show', $phone) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-sm font-medium transition duration-300">
                                         Detayları Gör
                                     </a>
                                 </div>

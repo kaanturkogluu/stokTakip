@@ -37,7 +37,7 @@
                                     $firstImage = $images && is_array($images) && count($images) > 0 ? $images[0] : null;
                                 @endphp
                                 @if($firstImage)
-                                    <img src="{{ $firstImage }}" alt="{{ $phone->name }}" class="h-full w-full object-cover">
+                                    <img src="{{ $firstImage }}" alt="{{ $phone->name }}" class="h-full w-full object-contain">
                                 @else
                                     <i class="fas fa-mobile-alt text-6xl text-gray-400"></i>
                                 @endif
@@ -45,16 +45,25 @@
                             <div class="p-6">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-2">{{ $phone->name }}</h3>
                                 <div class="space-y-1 mb-4 text-sm">
-                                    <p class="text-gray-600"><strong>Marka:</strong> {{ $phone->brand->name ?? 'N/A' }}</p>
-                                    <p class="text-gray-600"><strong>Model:</strong> {{ $phone->phoneModel->name ?? 'N/A' }}</p>
-                                    <p class="text-gray-600"><strong>Renk:</strong> {{ $phone->color->name ?? 'N/A' }}</p>
-                                    <p class="text-gray-600"><strong>Depolama:</strong> {{ $phone->storage->name ?? 'N/A' }}</p>
-                                    <p class="text-gray-600"><strong>RAM:</strong> {{ $phone->ram->name ?? 'N/A' }}</p>
+                                    @if($phone->brand)
+                                    <p class="text-gray-600"><strong>Marka:</strong> {{ $phone->brand->name }}</p>
+                                    @endif
+                                    @if($phone->phoneModel)
+                                    <p class="text-gray-600"><strong>Model:</strong> {{ $phone->phoneModel->name }}</p>
+                                    @endif
+                                    @if($phone->color)
+                                    <p class="text-gray-600"><strong>Renk:</strong> {{ $phone->color->name }}</p>
+                                    @endif
+                                    @if($phone->storage)
+                                    <p class="text-gray-600"><strong>Depolama:</strong> {{ $phone->storage->name }}</p>
+                                    @endif
+                                    @if($phone->ram)
+                                    <p class="text-gray-600"><strong>RAM:</strong> {{ $phone->ram->name }}</p>
+                                    @endif
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-xl font-bold text-blue-600">{{ number_format($phone->sale_price ?? $phone->purchase_price, 0, ',', '.') }} ₺</span>
-                                    <a href="{{ route('phones.show', $phone) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-300">
-                                        Detaylar
+                                <div class="flex justify-center">
+                                    <a href="{{ route('phones.show', $phone) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-sm font-medium transition duration-300">
+                                        Detayları Gör
                                     </a>
                                 </div>
                             </div>

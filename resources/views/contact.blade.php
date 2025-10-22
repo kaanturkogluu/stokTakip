@@ -33,7 +33,7 @@
                     <div>
                         <h2 class="text-3xl font-bold text-gray-800 mb-6">Bizimle İletişime Geçin</h2>
                         <p class="text-lg text-gray-600 mb-8">
-                            Macrotech olarak müşteri memnuniyetini ön planda tutuyoruz. 
+                            {{ $settings['site_name'] }} olarak müşteri memnuniyetini ön planda tutuyoruz. 
                             Sorularınız, önerileriniz veya destek talepleriniz için bize ulaşabilirsiniz.
                         </p>
                     </div>
@@ -51,14 +51,22 @@
                                         <i class="fab fa-whatsapp text-2xl text-green-500 mr-3"></i>
                                         <span class="font-semibold text-gray-800">Satış Destek</span>
                                     </div>
-                                    <a href="https://wa.me/905551234567" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">+90 555 123 45 67</a>
+                                    @if($settings['whatsapp_number'])
+                                        <a href="https://wa.me/{{ str_replace(['+', ' ', '-'], '', $settings['whatsapp_number']) }}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">{{ $settings['whatsapp_number'] }}</a>
+                                    @else
+                                        <span class="text-gray-500">Belirtilmemiş</span>
+                                    @endif
                                 </div>
                                 <div class="contact-card bg-white p-6 rounded-lg shadow-lg">
                                     <div class="flex items-center mb-3">
                                         <i class="fab fa-whatsapp text-2xl text-green-500 mr-3"></i>
                                         <span class="font-semibold text-gray-800">Teknik Destek</span>
                                     </div>
-                                    <a href="https://wa.me/905551234568" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">+90 555 123 45 68</a>
+                                    @if($settings['technical_phone'])
+                                        <a href="https://wa.me/{{ str_replace(['+', ' ', '-'], '', $settings['technical_phone']) }}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">{{ $settings['technical_phone'] }}</a>
+                                    @else
+                                        <span class="text-gray-500">Belirtilmemiş</span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -72,14 +80,22 @@
                                         <i class="fas fa-phone text-2xl text-blue-500 mr-3"></i>
                                         <span class="font-semibold text-gray-800">Ana Hat</span>
                                     </div>
-                                    <a href="tel:+905551234567" class="text-blue-600 hover:text-blue-800 font-medium">+90 555 123 45 67</a>
+                                    @if($settings['main_phone'])
+                                        <a href="tel:{{ $settings['main_phone'] }}" class="text-blue-600 hover:text-blue-800 font-medium">{{ $settings['main_phone'] }}</a>
+                                    @else
+                                        <span class="text-gray-500">Belirtilmemiş</span>
+                                    @endif
                                 </div>
                                 <div class="contact-card bg-white p-6 rounded-lg shadow-lg">
                                     <div class="flex items-center mb-3">
                                         <i class="fas fa-phone text-2xl text-blue-500 mr-3"></i>
                                         <span class="font-semibold text-gray-800">Satış</span>
                                     </div>
-                                    <a href="tel:+905551234569" class="text-blue-600 hover:text-blue-800 font-medium">+90 555 123 45 69</a>
+                                    @if($settings['sales_phone'])
+                                        <a href="tel:{{ $settings['sales_phone'] }}" class="text-blue-600 hover:text-blue-800 font-medium">{{ $settings['sales_phone'] }}</a>
+                                    @else
+                                        <span class="text-gray-500">Belirtilmemiş</span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -91,8 +107,8 @@
                             <i class="fas fa-map-marker-alt text-2xl text-blue-500 mr-3 mt-1"></i>
                             <div>
                                 <span class="font-semibold text-gray-800 block mb-2">Adres</span>
-                                <p class="text-gray-600">Maslak Mahallesi, Büyükdere Caddesi<br>No: 123, Sarıyer/İstanbul</p>
-                                <a href="https://maps.google.com/?q=Maslak+Mahallesi+Büyükdere+Caddesi+123+Sarıyer+İstanbul" target="_blank" class="inline-flex items-center mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-300">
+                                <p class="text-gray-600">{{ $settings['contact_address'] }}</p>
+                                <a href="https://maps.google.com/?q={{ urlencode($settings['contact_address']) }}" target="_blank" class="inline-flex items-center mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-300">
                                     <i class="fas fa-directions mr-2"></i>
                                     Konuma Git
                                 </a>
@@ -107,15 +123,26 @@
                     <div>
                         <h3 class="text-2xl font-bold text-gray-800 mb-6">Konumumuz</h3>
                         <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-                            <iframe 
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3003.0!2d29.0!3d41.1!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDHCsDA2JzAwLjAiTiAyOcKwMDAnMDAuMCJF!5e0!3m2!1str!2str!4v1234567890123!5m2!1str!2str" 
-                                width="100%" 
-                                height="400" 
-                                style="border:0;" 
-                                allowfullscreen="" 
-                                loading="lazy" 
-                                referrerpolicy="no-referrer-when-downgrade">
-                            </iframe>
+                            @if($settings['google_maps_latitude'] && $settings['google_maps_longitude'])
+                                <iframe 
+                                    src="https://maps.google.com/maps?q={{ $settings['google_maps_latitude'] }},{{ $settings['google_maps_longitude'] }}&z={{ $settings['google_maps_zoom'] }}&output=embed" 
+                                    width="100%" 
+                                    height="400" 
+                                    style="border:0;" 
+                                    allowfullscreen="" 
+                                    loading="lazy">
+                                </iframe>
+                            @else
+                                <iframe 
+                                    src="https://maps.google.com/maps?q={{ urlencode($settings['contact_address']) }}&t=&z=15&ie=UTF8&iwloc=&output=embed" 
+                                    width="100%" 
+                                    height="400" 
+                                    style="border:0;" 
+                                    allowfullscreen="" 
+                                    loading="lazy" 
+                                    referrerpolicy="no-referrer-when-downgrade">
+                                </iframe>
+                            @endif
                         </div>
                     </div>
 
@@ -126,10 +153,10 @@
                             <span class="font-semibold text-gray-800">Çalışma Saatleri</span>
                         </div>
                         <div class="space-y-1 text-gray-600">
-                            <p>Pazartesi - Cuma: 09:00 - 18:00</p>
-                            <p>Cumartesi: 10:00 - 16:00</p>
-                            <p>Pazar: Kapalı</p>
-                            <p class="text-green-600 font-medium">7/24 WhatsApp Destek</p>
+                            <p>Pazartesi - Cuma: {{ $settings['working_hours_weekdays'] }}</p>
+                            <p>Cumartesi: {{ $settings['working_hours_saturday'] }}</p>
+                            <p>Pazar: {{ $settings['working_hours_sunday'] }}</p>
+                            <p class="text-green-600 font-medium">{{ $settings['whatsapp_support'] }} WhatsApp Destek</p>
                         </div>
                     </div>
 

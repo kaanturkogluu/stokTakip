@@ -9,6 +9,19 @@ Route::get('/telefonlar', [PhoneController::class, 'phones'])->name('phones.inde
 Route::get('/telefon/{phone}', [PhoneController::class, 'show'])->name('phones.show');
 Route::get('/iletisim', [PhoneController::class, 'contact'])->name('contact');
 
+// Legal Pages Routes
+Route::get('/gizlilik-politikasi', function () {
+    return view('privacy-policy');
+})->name('privacy-policy');
+
+Route::get('/kullanim-sartlari', function () {
+    return view('terms-of-use');
+})->name('terms-of-use');
+
+Route::get('/cerez-politikasi', function () {
+    return view('cookie-policy');
+})->name('cookie-policy');
+
 // Admin Routes
 Route::get('/login', [AdminController::class, 'login'])->name('admin.login');
 Route::post('/login', [AdminController::class, 'authenticate'])->name('admin.authenticate');
@@ -21,6 +34,8 @@ Route::get('/admin/phones/create', [AdminController::class, 'create'])->name('ad
 Route::post('/admin/phones', [AdminController::class, 'store'])->name('admin.phones.store');
 Route::get('/admin/phones/models-by-brand', [AdminController::class, 'getPhoneModelsByBrand'])->name('admin.phones.models-by-brand');
 Route::get('/admin/phones/colors-by-brand', [AdminController::class, 'getColorsByBrand'])->name('admin.phones.colors-by-brand');
+Route::get('/admin/phones/search-by-serial', [AdminController::class, 'searchPhoneBySerial'])->name('admin.phones.search-by-serial');
+Route::post('/admin/phones/sell', [AdminController::class, 'sellPhone'])->name('admin.phones.sell');
 Route::get('/admin/phones/{phone}', [AdminController::class, 'show'])->name('admin.phones.show');
 Route::get('/admin/phones/{phone}/edit', [AdminController::class, 'edit'])->name('admin.phones.edit');
 Route::put('/admin/phones/{phone}', [AdminController::class, 'update'])->name('admin.phones.update');
@@ -68,3 +83,12 @@ Route::get('/admin/data/cameras/{camera}/edit', [AdminController::class, 'editCa
 Route::put('/admin/data/cameras/{camera}', [AdminController::class, 'updateCamera'])->name('admin.data.cameras.update');
 Route::get('/admin/data/batteries/create', [AdminController::class, 'createBattery'])->name('admin.data.batteries.create');
 Route::post('/admin/data/batteries', [AdminController::class, 'storeBattery'])->name('admin.data.batteries.store');
+
+// Admin Settings Routes
+Route::get('/admin/settings', [AdminController::class, 'settings'])->name('admin.settings');
+Route::post('/admin/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
+Route::post('/admin/settings/upload-logo', [AdminController::class, 'uploadLogo'])->name('admin.settings.upload-logo');
+Route::post('/admin/settings/upload-favicon', [AdminController::class, 'uploadFavicon'])->name('admin.settings.upload-favicon');
+
+// Admin Reports Routes
+Route::get('/admin/reports', [AdminController::class, 'reports'])->name('admin.reports');

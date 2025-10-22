@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use App\Models\Setting;
 use App\Models\Phone;
 use App\Models\Brand;
 use App\Models\PhoneModel;
 use App\Models\Color;
-use App\Models\Storage;
+use App\Models\Storage as StorageModel;
 use App\Models\Ram;
 use App\Models\Screen;
 use App\Models\Camera;
@@ -45,11 +48,15 @@ class AdminController extends Controller
             return redirect()->route('admin.login');
         }
 
-        $phones = Phone::all();
         $totalPhones = Phone::count();
         $featuredPhones = Phone::where('is_featured', true)->count();
+        $soldPhones = Phone::where('is_sold', true)->count();
+        $availablePhones = Phone::where('is_sold', false)->count();
 
-        return view('admin.dashboard', compact('phones', 'totalPhones', 'featuredPhones'));
+        return view('admin.dashboard', compact(
+            'totalPhones', 'featuredPhones', 
+            'soldPhones', 'availablePhones'
+        ));
     }
 
     public function phones(Request $request)
@@ -140,7 +147,7 @@ class AdminController extends Controller
 
             return response()->json(['colors' => $colors]);
         } catch (\Exception $e) {
-            \Log::error('getColorsByBrand error: ' . $e->getMessage());
+            Log::error('getColorsByBrand error: ' . $e->getMessage());
             return response()->json(['error' => 'Server error'], 500);
         }
     }
@@ -160,7 +167,7 @@ class AdminController extends Controller
         // Veritabanından verileri çek
         $brands = Brand::where('is_active', true)->get();
         $colors = Color::where('is_active', true)->get();
-        $storages = Storage::where('is_active', true)->get();
+        $storages = StorageModel::where('is_active', true)->get();
         $rams = Ram::where('is_active', true)->get();
         $screens = Screen::where('is_active', true)->get();
         $cameras = Camera::where('is_active', true)->get();
@@ -185,11 +192,11 @@ class AdminController extends Controller
             'sale_price' => 'nullable|numeric|min:0',
             'brand_id' => 'required|exists:brands,id',
             'phone_model_id' => 'required|exists:phone_models,id',
-            'color_id' => 'required|exists:colors,id',
+            'color_id' => 'nullable|exists:colors,id',
             'storage_id' => 'required|exists:storages,id',
             'ram_id' => 'required|exists:rams,id',
-            'screen_id' => 'required|exists:screens,id',
-            'camera_id' => 'required|exists:cameras,id',
+            'screen_id' => 'nullable|exists:screens,id',
+            'camera_id' => 'nullable|exists:cameras,id',
             'battery_id' => 'required|exists:batteries,id',
             'condition' => 'required|in:sifir,ikinci_el',
             'origin' => 'required|in:yurtdisi,turkiye',
@@ -254,7 +261,7 @@ class AdminController extends Controller
         // Form için gerekli verileri yükle
         $brands = Brand::where('is_active', true)->orderBy('name')->get();
         $colors = Color::where('is_active', true)->orderBy('name')->get();
-        $storages = Storage::where('is_active', true)->orderBy('capacity_gb')->get();
+        $storages = StorageModel::where('is_active', true)->orderBy('capacity_gb')->get();
         $rams = Ram::where('is_active', true)->orderBy('capacity_gb')->get();
         $screens = Screen::where('is_active', true)->orderBy('size_inches')->get();
         $cameras = Camera::where('is_active', true)->orderBy('name')->get();
@@ -387,7 +394,7 @@ class AdminController extends Controller
             return redirect()->route('admin.login');
         }
 
-        $storages = Storage::withCount('phones')->get();
+        $storages = StorageModel::withCount('phones')->get();
         return view('admin.data.storages', compact('storages'));
     }
 
@@ -581,12 +588,12 @@ class AdminController extends Controller
             'is_active' => 'boolean'
         ]);
 
-        Storage::create($request->all());
+        StorageModel::create($request->all());
 
         return redirect()->route('admin.data.storages')->with('success', 'Depolama başarıyla eklendi!');
     }
 
-    public function editStorage(Storage $storage)
+    public function editStorage(StorageModel $storage)
     {
         if (!session('admin_logged_in')) {
             return redirect()->route('admin.login');
@@ -595,7 +602,7 @@ class AdminController extends Controller
         return view('admin.data.storages.edit', compact('storage'));
     }
 
-    public function updateStorage(Request $request, Storage $storage)
+    public function updateStorage(Request $request, StorageModel $storage)
     {
         if (!session('admin_logged_in')) {
             return redirect()->route('admin.login');
@@ -872,5 +879,307 @@ class AdminController extends Controller
         $camera->update($data);
 
         return redirect()->route('admin.data.cameras')->with('success', 'Kamera başarıyla güncellendi!');
+    }
+
+    // Sale functionality
+    public function searchPhoneBySerial(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $serialNumber = $request->get('serial');
+        
+        if (!$serialNumber) {
+            return response()->json(['success' => false, 'message' => 'Seri numarası gerekli']);
+        }
+
+        $phone = Phone::with(['brand', 'phoneModel', 'color', 'storage', 'ram', 'screen', 'camera', 'battery'])
+                     ->where('stock_serial', 'LIKE', "%{$serialNumber}%")
+                     ->first();
+
+        if ($phone) {
+            return response()->json([
+                'success' => true,
+                'phone' => $phone
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Bu seri numarasına sahip cihaz bulunamadı'
+        ]);
+    }
+
+    public function sellPhone(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $request->validate([
+            'serial_number' => 'required|string',
+            'sale_price' => 'required|numeric|min:0'
+        ]);
+
+        $phone = Phone::where('stock_serial', $request->serial_number)->first();
+
+        if (!$phone) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bu seri numarasına sahip cihaz bulunamadı'
+            ]);
+        }
+
+        if ($phone->is_sold) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bu cihaz zaten satılmış'
+            ]);
+        }
+
+        // Update phone as sold
+        $phone->update([
+            'is_sold' => true,
+            'sale_price' => $request->sale_price,
+            'sold_at' => now()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$phone->name} cihazı başarıyla satıldı. Satış fiyatı: " . number_format($request->sale_price, 2) . " ₺"
+        ]);
+    }
+
+    // Settings functionality
+    public function settings()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        // Get settings from database
+        $settings = Setting::getAllAsArray();
+
+        return view('admin.settings', compact('settings'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'site_name' => 'required|string|max:255',
+            'site_description' => 'nullable|string|max:500',
+            'contact_email' => 'required|email|max:255',
+            'contact_phone' => 'required|string|max:20',
+            'contact_address' => 'required|string|max:500',
+            'whatsapp_number' => 'nullable|string|max:20',
+            'sales_phone' => 'nullable|string|max:20',
+            'technical_phone' => 'nullable|string|max:20',
+            'main_phone' => 'nullable|string|max:20',
+            'working_hours_weekdays' => 'nullable|string|max:50',
+            'working_hours_saturday' => 'nullable|string|max:50',
+            'working_hours_sunday' => 'nullable|string|max:50',
+            'whatsapp_support' => 'nullable|string|max:50',
+            'facebook_url' => 'nullable|url|max:255',
+            'instagram_url' => 'nullable|url|max:255',
+            'twitter_url' => 'nullable|url|max:255',
+            'youtube_url' => 'nullable|url|max:255',
+            'google_maps_latitude' => 'nullable|numeric|between:-90,90',
+            'google_maps_longitude' => 'nullable|numeric|between:-180,180',
+            'google_maps_zoom' => 'nullable|integer|between:1,20',
+        ]);
+
+        // Save settings to database (logo and favicon are handled separately via file upload)
+        $settingsToUpdate = [
+            'site_name' => $request->site_name,
+            'site_description' => $request->site_description,
+            'contact_email' => $request->contact_email,
+            'contact_phone' => $request->contact_phone,
+            'contact_address' => $request->contact_address,
+            'whatsapp_number' => $request->whatsapp_number,
+            'sales_phone' => $request->sales_phone,
+            'technical_phone' => $request->technical_phone,
+            'main_phone' => $request->main_phone,
+            'working_hours_weekdays' => $request->working_hours_weekdays,
+            'working_hours_saturday' => $request->working_hours_saturday,
+            'working_hours_sunday' => $request->working_hours_sunday,
+            'whatsapp_support' => $request->whatsapp_support,
+            'facebook_url' => $request->facebook_url,
+            'instagram_url' => $request->instagram_url,
+            'twitter_url' => $request->twitter_url,
+            'youtube_url' => $request->youtube_url,
+            'google_maps_latitude' => $request->google_maps_latitude,
+            'google_maps_longitude' => $request->google_maps_longitude,
+            'google_maps_zoom' => $request->google_maps_zoom,
+        ];
+
+        foreach ($settingsToUpdate as $key => $value) {
+            Setting::setValue($key, $value);
+        }
+        
+        return redirect()->route('admin.settings')->with('success', 'Site ayarları başarıyla güncellendi!');
+    }
+
+    // Helper method to get settings (can be used across the application)
+    public static function getSettings()
+    {
+        return Setting::getAllAsArray();
+    }
+
+    public function uploadLogo(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $request->validate([
+            'logo' => 'required|file|mimes:jpeg,png,jpg,gif,svg|max:2048'
+        ]);
+
+        try {
+            // Delete old logo if exists
+            $oldLogo = Setting::getValue('site_logo');
+            if ($oldLogo && Storage::disk('public')->exists(str_replace('/storage/', '', $oldLogo))) {
+                Storage::disk('public')->delete(str_replace('/storage/', '', $oldLogo));
+            }
+
+            // Store new logo
+            $path = $request->file('logo')->store('logos', 'public');
+            $url = '/storage/' . $path;
+
+            // Update setting
+            Setting::setValue('site_logo', $url);
+
+            return response()->json([
+                'success' => true,
+                'url' => $url,
+                'message' => 'Logo başarıyla yüklendi!'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Logo upload error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Logo yüklenirken bir hata oluştu!'
+            ], 500);
+        }
+    }
+
+    public function uploadFavicon(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $request->validate([
+            'favicon' => 'required|file|mimes:jpeg,png,jpg,gif,svg,ico|max:1024'
+        ]);
+
+        try {
+            // Delete old favicon if exists
+            $oldFavicon = Setting::getValue('site_favicon');
+            if ($oldFavicon && Storage::disk('public')->exists(str_replace('/storage/', '', $oldFavicon))) {
+                Storage::disk('public')->delete(str_replace('/storage/', '', $oldFavicon));
+            }
+
+            // Store new favicon
+            $path = $request->file('favicon')->store('favicons', 'public');
+            $url = '/storage/' . $path;
+
+            // Update setting
+            Setting::setValue('site_favicon', $url);
+
+            return response()->json([
+                'success' => true,
+                'url' => $url,
+                'message' => 'Favicon başarıyla yüklendi!'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Favicon upload error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Favicon yüklenirken bir hata oluştu!'
+            ], 500);
+        }
+    }
+
+    public function reports()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        // Telefon istatistikleri
+        $totalPhones = Phone::count();
+        $soldPhones = Phone::where('is_sold', true)->count();
+        $availablePhones = Phone::where('is_sold', false)->count();
+        $featuredPhones = Phone::where('is_featured', true)->count();
+
+        // Marka bazında istatistikler
+        $brandStats = Phone::join('brands', 'phones.brand_id', '=', 'brands.id')
+            ->selectRaw('brands.name, COUNT(*) as count')
+            ->groupBy('brands.id', 'brands.name')
+            ->orderBy('count', 'desc')
+            ->get();
+
+        // Durum bazında istatistikler
+        $conditionStats = Phone::selectRaw('`condition`, COUNT(*) as count')
+            ->groupBy('condition')
+            ->get();
+
+        // Menşei bazında istatistikler
+        $originStats = Phone::selectRaw('origin, COUNT(*) as count')
+            ->groupBy('origin')
+            ->get();
+
+        // Aylık satış istatistikleri (son 12 ay)
+        $monthlySales = Phone::where('is_sold', true)
+            ->where('sold_at', '>=', now()->subMonths(12))
+            ->selectRaw('DATE_FORMAT(sold_at, "%Y-%m") as month, COUNT(*) as count')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        // En çok satılan telefonlar
+        $topSellingPhones = Phone::where('is_sold', true)
+            ->join('brands', 'phones.brand_id', '=', 'brands.id')
+            ->join('phone_models', 'phones.phone_model_id', '=', 'phone_models.id')
+            ->selectRaw('phones.name, brands.name as brand_name, phone_models.name as model_name, COUNT(*) as sales_count')
+            ->groupBy('phones.name', 'brands.name', 'phone_models.name')
+            ->orderBy('sales_count', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Detaylı rapor - Model bazında istatistikler
+        $detailedReport = Phone::selectRaw('
+                phone_models.name as model_name,
+                brands.name as brand_name,
+                COUNT(*) as total_count,
+                SUM(CASE WHEN phones.is_sold = 1 THEN 1 ELSE 0 END) as sold_count,
+                SUM(CASE WHEN phones.is_sold = 0 THEN 1 ELSE 0 END) as available_count
+            ')
+            ->join('phone_models', 'phones.phone_model_id', '=', 'phone_models.id')
+            ->join('brands', 'phones.brand_id', '=', 'brands.id')
+            ->groupBy('phone_models.id', 'phone_models.name', 'brands.name')
+            ->orderBy('total_count', 'desc')
+            ->get();
+
+        return view('admin.reports', compact(
+            'totalPhones',
+            'soldPhones', 
+            'availablePhones',
+            'featuredPhones',
+            'brandStats',
+            'conditionStats',
+            'originStats',
+            'monthlySales',
+            'topSellingPhones',
+            'detailedReport'
+        ));
     }
 }

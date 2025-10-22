@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Panel - Macrotech')</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -44,15 +45,11 @@
                         <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Diğer</p>
                     </div>
                     
-                    <a href="#" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200">
-                        <i class="fas fa-users mr-3"></i>
-                        Müşteriler
-                    </a>
-                    <a href="#" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200">
+                    <a href="{{ route('admin.reports') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.reports') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-chart-bar mr-3"></i>
                         Raporlar
                     </a>
-                    <a href="#" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200">
+                    <a href="{{ route('admin.settings') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.settings') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-cog mr-3"></i>
                         Ayarlar
                     </a>
