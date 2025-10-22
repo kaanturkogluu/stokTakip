@@ -5,6 +5,15 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Phone;
+use App\Models\Brand;
+use App\Models\PhoneModel;
+use App\Models\Color;
+use App\Models\Storage;
+use App\Models\Memory;
+use App\Models\Ram;
+use App\Models\Screen;
+use App\Models\Camera;
+use App\Models\Battery;
 
 class AdminController extends Controller
 {
@@ -56,7 +65,21 @@ class AdminController extends Controller
             return redirect()->route('admin.login');
         }
 
-        return view('admin.phones.create');
+        // Veritabanından verileri çek
+        $brands = Brand::where('is_active', true)->get();
+        $phoneModels = PhoneModel::where('is_active', true)->get();
+        $colors = Color::where('is_active', true)->get();
+        $storages = Storage::where('is_active', true)->get();
+        $memories = Memory::where('is_active', true)->get();
+        $rams = Ram::where('is_active', true)->get();
+        $screens = Screen::where('is_active', true)->get();
+        $cameras = Camera::where('is_active', true)->get();
+        $batteries = Battery::where('is_active', true)->get();
+
+        return view('admin.phones.create', compact(
+            'brands', 'phoneModels', 'colors', 'storages', 
+            'memories', 'rams', 'screens', 'cameras', 'batteries'
+        ));
     }
 
     public function store(Request $request)
@@ -67,22 +90,20 @@ class AdminController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'required|string',
+            'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
-            'brand' => 'required|string|max:255',
-            'model' => 'required|string|max:255',
-            'color' => 'required|string|max:255',
-            'storage' => 'required|string|max:255',
-            'memory' => 'nullable|string|max:255',
-            'ram' => 'required|string|max:255',
-            'screen_size' => 'required|string|max:255',
-            'camera' => 'required|string|max:255',
-            'battery' => 'required|string|max:255',
-            'os' => 'required|string|max:255',
+            'brand_id' => 'required|exists:brands,id',
+            'phone_model_id' => 'required|exists:phone_models,id',
+            'color_id' => 'required|exists:colors,id',
+            'storage_id' => 'required|exists:storages,id',
+            'memory_id' => 'nullable|exists:memories,id',
+            'ram_id' => 'required|exists:rams,id',
+            'screen_id' => 'required|exists:screens,id',
+            'camera_id' => 'required|exists:cameras,id',
+            'battery_id' => 'required|exists:batteries,id',
             'condition' => 'required|in:sifir,ikinci_el',
             'origin' => 'required|in:yurtdisi,turkiye',
             'stock_serial' => 'nullable|string|max:255',
-            'whatsapp_number' => 'required|string|max:255',
             'notes' => 'nullable|string',
             'is_featured' => 'boolean',
             'images' => 'nullable|array',
@@ -99,5 +120,558 @@ class AdminController extends Controller
         Phone::create($phoneData);
 
         return redirect()->route('admin.dashboard')->with('success', 'Telefon başarıyla eklendi!');
+    }
+
+    // Data Management Pages
+    public function dataIndex()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.index');
+    }
+
+    public function brands()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $brands = Brand::withCount('phoneModels')->get();
+        return view('admin.data.brands', compact('brands'));
+    }
+
+    public function phoneModels()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $phoneModels = PhoneModel::with('brand')->withCount('phones')->get();
+        $brands = Brand::where('is_active', true)->get();
+        return view('admin.data.phone-models', compact('phoneModels', 'brands'));
+    }
+
+    public function colors()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $colors = Color::withCount('phones')->get();
+        return view('admin.data.colors', compact('colors'));
+    }
+
+    public function storages()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $storages = Storage::withCount('phones')->get();
+        return view('admin.data.storages', compact('storages'));
+    }
+
+    public function memories()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $memories = Memory::withCount('phones')->get();
+        return view('admin.data.memories', compact('memories'));
+    }
+
+    public function rams()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $rams = Ram::withCount('phones')->get();
+        return view('admin.data.rams', compact('rams'));
+    }
+
+    public function screens()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $screens = Screen::withCount('phones')->get();
+        return view('admin.data.screens', compact('screens'));
+    }
+
+    public function cameras()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $cameras = Camera::withCount('phones')->get();
+        return view('admin.data.cameras', compact('cameras'));
+    }
+
+    public function batteries()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $batteries = Battery::withCount('phones')->get();
+        return view('admin.data.batteries', compact('batteries'));
+    }
+
+    // Create Methods
+    public function createBrand()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.brands.create');
+    }
+
+    public function storeBrand(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:brands',
+            'description' => 'nullable|string',
+            'logo' => 'nullable|string|max:255',
+            'is_active' => 'boolean'
+        ]);
+
+        Brand::create($request->all());
+
+        return redirect()->route('admin.data.brands')->with('success', 'Marka başarıyla eklendi!');
+    }
+
+    public function editBrand(Brand $brand)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.brands.edit', compact('brand'));
+    }
+
+    public function updateBrand(Request $request, Brand $brand)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:brands,name,' . $brand->id,
+            'description' => 'nullable|string',
+            'logo' => 'nullable|string|max:255',
+            'is_active' => 'boolean'
+        ]);
+
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active');
+
+        $brand->update($data);
+
+        return redirect()->route('admin.data.brands')->with('success', 'Marka başarıyla güncellendi!');
+    }
+
+    public function createColor()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.colors.create');
+    }
+
+    public function storeColor(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:colors',
+            'hex_code' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
+            'is_active' => 'boolean'
+        ]);
+
+        Color::create($request->all());
+
+        return redirect()->route('admin.data.colors')->with('success', 'Renk başarıyla eklendi!');
+    }
+
+    public function editColor(Color $color)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.colors.edit', compact('color'));
+    }
+
+    public function updateColor(Request $request, Color $color)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:colors,name,' . $color->id,
+            'hex_code' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
+            'is_active' => 'boolean'
+        ]);
+
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active');
+
+        $color->update($data);
+
+        return redirect()->route('admin.data.colors')->with('success', 'Renk başarıyla güncellendi!');
+    }
+
+    public function createStorage()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.storages.create');
+    }
+
+    public function storeStorage(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:storages',
+            'capacity_gb' => 'required|integer|min:1',
+            'is_active' => 'boolean'
+        ]);
+
+        Storage::create($request->all());
+
+        return redirect()->route('admin.data.storages')->with('success', 'Depolama başarıyla eklendi!');
+    }
+
+    public function editStorage(Storage $storage)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.storages.edit', compact('storage'));
+    }
+
+    public function updateStorage(Request $request, Storage $storage)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:storages,name,' . $storage->id,
+            'capacity_gb' => 'required|integer|min:1',
+            'is_active' => 'boolean'
+        ]);
+
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active');
+
+        $storage->update($data);
+
+        return redirect()->route('admin.data.storages')->with('success', 'Depolama başarıyla güncellendi!');
+    }
+
+    public function createMemory()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.memories.create');
+    }
+
+    public function storeMemory(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:memories',
+            'capacity_gb' => 'required|integer|min:1',
+            'is_active' => 'boolean'
+        ]);
+
+        Memory::create($request->all());
+
+        return redirect()->route('admin.data.memories')->with('success', 'Hafıza başarıyla eklendi!');
+    }
+
+    public function createRam()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.rams.create');
+    }
+
+    public function storeRam(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:rams',
+            'capacity_gb' => 'required|integer|min:1',
+            'is_active' => 'boolean'
+        ]);
+
+        Ram::create($request->all());
+
+        return redirect()->route('admin.data.rams')->with('success', 'RAM başarıyla eklendi!');
+    }
+
+    public function editRam(Ram $ram)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.rams.edit', compact('ram'));
+    }
+
+    public function updateRam(Request $request, Ram $ram)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:rams,name,' . $ram->id,
+            'capacity_gb' => 'required|integer|min:1',
+            'is_active' => 'boolean'
+        ]);
+
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active');
+
+        $ram->update($data);
+
+        return redirect()->route('admin.data.rams')->with('success', 'RAM başarıyla güncellendi!');
+    }
+
+    public function createScreen()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.screens.create');
+    }
+
+    public function storeScreen(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:screens',
+            'size_inches' => 'required|numeric|min:1|max:20',
+            'resolution' => 'nullable|string|max:255',
+            'is_active' => 'boolean'
+        ]);
+
+        Screen::create($request->all());
+
+        return redirect()->route('admin.data.screens')->with('success', 'Ekran başarıyla eklendi!');
+    }
+
+    public function editScreen(Screen $screen)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.screens.edit', compact('screen'));
+    }
+
+    public function updateScreen(Request $request, Screen $screen)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:screens,name,' . $screen->id,
+            'size_inches' => 'required|numeric|min:1|max:20',
+            'resolution' => 'nullable|string|max:255',
+            'is_active' => 'boolean'
+        ]);
+
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active');
+
+        $screen->update($data);
+
+        return redirect()->route('admin.data.screens')->with('success', 'Ekran başarıyla güncellendi!');
+    }
+
+    public function createCamera()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.cameras.create');
+    }
+
+    public function storeCamera(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:cameras',
+            'specification' => 'required|string|max:255',
+            'is_active' => 'boolean'
+        ]);
+
+        Camera::create($request->all());
+
+        return redirect()->route('admin.data.cameras')->with('success', 'Kamera başarıyla eklendi!');
+    }
+
+    public function createBattery()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.batteries.create');
+    }
+
+    public function storeBattery(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:batteries',
+            'capacity_mah' => 'required|integer|min:100',
+            'is_active' => 'boolean'
+        ]);
+
+        Battery::create($request->all());
+
+        return redirect()->route('admin.data.batteries')->with('success', 'Batarya başarıyla eklendi!');
+    }
+
+    public function createPhoneModel()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $brands = Brand::where('is_active', true)->get();
+        return view('admin.data.phone-models.create', compact('brands'));
+    }
+
+    public function storePhoneModel(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'brand_id' => 'required|exists:brands,id',
+            'description' => 'nullable|string',
+            'image' => 'nullable|string|max:255',
+            'is_active' => 'boolean'
+        ]);
+
+        $data = $request->all();
+        $data['slug'] = \Illuminate\Support\Str::slug($data['name']);
+        $data['is_active'] = $request->has('is_active');
+
+        PhoneModel::create($data);
+
+        return redirect()->route('admin.data.phone-models')->with('success', 'Telefon modeli başarıyla eklendi!');
+    }
+
+    public function editPhoneModel(PhoneModel $phoneModel)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $brands = Brand::where('is_active', true)->get();
+        return view('admin.data.phone-models.edit', compact('phoneModel', 'brands'));
+    }
+
+    public function updatePhoneModel(Request $request, PhoneModel $phoneModel)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'brand_id' => 'required|exists:brands,id',
+            'description' => 'nullable|string',
+            'image' => 'nullable|string|max:255',
+            'is_active' => 'boolean'
+        ]);
+
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active');
+
+        $phoneModel->update($data);
+
+        return redirect()->route('admin.data.phone-models')->with('success', 'Telefon modeli başarıyla güncellendi!');
+    }
+
+    public function editCamera(Camera $camera)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.data.cameras.edit', compact('camera'));
+    }
+
+    public function updateCamera(Request $request, Camera $camera)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:cameras,name,' . $camera->id,
+            'specification' => 'required|string|max:255',
+            'is_active' => 'boolean'
+        ]);
+
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active');
+
+        $camera->update($data);
+
+        return redirect()->route('admin.data.cameras')->with('success', 'Kamera başarıyla güncellendi!');
     }
 }

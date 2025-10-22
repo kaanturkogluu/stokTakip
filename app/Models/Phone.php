@@ -10,20 +10,18 @@ class Phone extends Model
         'name',
         'description',
         'price',
-        'brand',
-        'model',
-        'color',
-        'storage',
-        'ram',
-        'screen_size',
-        'camera',
-        'battery',
-        'os',
+        'brand_id',
+        'phone_model_id',
+        'color_id',
+        'storage_id',
+        'memory_id',
+        'ram_id',
+        'screen_id',
+        'camera_id',
+        'battery_id',
         'images',
-        'whatsapp_number',
         'is_featured',
         'stock_serial',
-        'memory',
         'condition',
         'origin',
         'notes'
@@ -34,4 +32,50 @@ class Phone extends Model
         'price' => 'decimal:2',
         'is_featured' => 'boolean'
     ];
+
+    // Relationships
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    public function phoneModel()
+    {
+        return $this->belongsTo(PhoneModel::class, 'phone_model_id');
+    }
+
+    public function color()
+    {
+        return $this->belongsTo(Color::class);
+    }
+
+    public function storage()
+    {
+        return $this->belongsTo(Storage::class);
+    }
+
+    public function memory()
+    {
+        return $this->belongsTo(Memory::class);
+    }
+
+    public function ram()
+    {
+        return $this->belongsTo(Ram::class);
+    }
+
+    public function screen()
+    {
+        return $this->belongsTo(Screen::class);
+    }
+
+    public function camera()
+    {
+        return $this->belongsTo(Camera::class);
+    }
+
+    public function battery()
+    {
+        return $this->belongsTo(Battery::class);
+    }
 }

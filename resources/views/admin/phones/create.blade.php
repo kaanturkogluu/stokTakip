@@ -43,51 +43,63 @@
 
                 <!-- Brand -->
                 <div>
-                    <label for="brand" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="brand_id" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-tag mr-2"></i>Marka *
                     </label>
-                    <input type="text" 
-                           id="brand" 
-                           name="brand" 
-                           value="{{ old('brand') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('brand') border-red-500 @enderror"
-                           placeholder="Apple"
-                           required>
-                    @error('brand')
+                    <select id="brand_id" 
+                            name="brand_id" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('brand_id') border-red-500 @enderror"
+                            required>
+                        <option value="">Marka Seçiniz</option>
+                        @foreach($brands as $brand)
+                            <option value="{{ $brand->id }}" {{ old('brand_id') == $brand->id ? 'selected' : '' }}>
+                                {{ $brand->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('brand_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <!-- Model -->
                 <div>
-                    <label for="model" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="phone_model_id" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-cube mr-2"></i>Model *
                     </label>
-                    <input type="text" 
-                           id="model" 
-                           name="model" 
-                           value="{{ old('model') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('model') border-red-500 @enderror"
-                           placeholder="iPhone 15 Pro Max"
-                           required>
-                    @error('model')
+                    <select id="phone_model_id" 
+                            name="phone_model_id" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('phone_model_id') border-red-500 @enderror"
+                            required>
+                        <option value="">Model Seçiniz</option>
+                        @foreach($phoneModels as $phoneModel)
+                            <option value="{{ $phoneModel->id }}" {{ old('phone_model_id') == $phoneModel->id ? 'selected' : '' }}>
+                                {{ $phoneModel->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('phone_model_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <!-- Color -->
                 <div>
-                    <label for="color" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="color_id" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-palette mr-2"></i>Renk *
                     </label>
-                    <input type="text" 
-                           id="color" 
-                           name="color" 
-                           value="{{ old('color') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('color') border-red-500 @enderror"
-                           placeholder="Natural Titanium"
-                           required>
-                    @error('color')
+                    <select id="color_id" 
+                            name="color_id" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('color_id') border-red-500 @enderror"
+                            required>
+                        <option value="">Renk Seçiniz</option>
+                        @foreach($colors as $color)
+                            <option value="{{ $color->id }}" {{ old('color_id') == $color->id ? 'selected' : '' }}>
+                                {{ $color->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('color_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
@@ -98,7 +110,7 @@
                 <!-- Price -->
                 <div>
                     <label for="price" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-lira-sign mr-2"></i>Fiyat (₺) *
+                        <i class="fas fa-lira-sign mr-2"></i>Alış Fiyat (₺) *
                     </label>
                     <input type="number" 
                            id="price" 
@@ -155,125 +167,133 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Storage -->
                 <div>
-                    <label for="storage" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="storage_id" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-hdd mr-2"></i>Depolama *
                     </label>
-                    <input type="text" 
-                           id="storage" 
-                           name="storage" 
-                           value="{{ old('storage') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('storage') border-red-500 @enderror"
-                           placeholder="256GB"
-                           required>
-                    @error('storage')
+                    <select id="storage_id" 
+                            name="storage_id" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('storage_id') border-red-500 @enderror"
+                            required>
+                        <option value="">Depolama Seçiniz</option>
+                        @foreach($storages as $storage)
+                            <option value="{{ $storage->id }}" {{ old('storage_id') == $storage->id ? 'selected' : '' }}>
+                                {{ $storage->name }} ({{ $storage->capacity_gb }}GB)
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('storage_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <!-- Memory -->
                 <div>
-                    <label for="memory" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="memory_id" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-memory mr-2"></i>Hafıza
                     </label>
-                    <input type="text" 
-                           id="memory" 
-                           name="memory" 
-                           value="{{ old('memory') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('memory') border-red-500 @enderror"
-                           placeholder="8GB">
-                    @error('memory')
+                    <select id="memory_id" 
+                            name="memory_id" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('memory_id') border-red-500 @enderror">
+                        <option value="">Hafıza Seçiniz (Opsiyonel)</option>
+                        @foreach($memories as $memory)
+                            <option value="{{ $memory->id }}" {{ old('memory_id') == $memory->id ? 'selected' : '' }}>
+                                {{ $memory->name }} ({{ $memory->capacity_gb }}GB)
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('memory_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <!-- RAM -->
                 <div>
-                    <label for="ram" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="ram_id" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-microchip mr-2"></i>RAM *
                     </label>
-                    <input type="text" 
-                           id="ram" 
-                           name="ram" 
-                           value="{{ old('ram') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('ram') border-red-500 @enderror"
-                           placeholder="8GB"
-                           required>
-                    @error('ram')
+                    <select id="ram_id" 
+                            name="ram_id" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('ram_id') border-red-500 @enderror"
+                            required>
+                        <option value="">RAM Seçiniz</option>
+                        @foreach($rams as $ram)
+                            <option value="{{ $ram->id }}" {{ old('ram_id') == $ram->id ? 'selected' : '' }}>
+                                {{ $ram->name }} ({{ $ram->capacity_gb }}GB)
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('ram_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <!-- Screen Size -->
                 <div>
-                    <label for="screen_size" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="screen_id" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-mobile-alt mr-2"></i>Ekran Boyutu *
                     </label>
-                    <input type="text" 
-                           id="screen_size" 
-                           name="screen_size" 
-                           value="{{ old('screen_size') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('screen_size') border-red-500 @enderror"
-                           placeholder="6.7 inç"
-                           required>
-                    @error('screen_size')
+                    <select id="screen_id" 
+                            name="screen_id" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('screen_id') border-red-500 @enderror"
+                            required>
+                        <option value="">Ekran Boyutu Seçiniz</option>
+                        @foreach($screens as $screen)
+                            <option value="{{ $screen->id }}" {{ old('screen_id') == $screen->id ? 'selected' : '' }}>
+                                {{ $screen->name }} ({{ $screen->resolution }})
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('screen_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <!-- Camera -->
                 <div>
-                    <label for="camera" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="camera_id" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-camera mr-2"></i>Kamera *
                     </label>
-                    <input type="text" 
-                           id="camera" 
-                           name="camera" 
-                           value="{{ old('camera') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('camera') border-red-500 @enderror"
-                           placeholder="48MP + 12MP + 12MP"
-                           required>
-                    @error('camera')
+                    <select id="camera_id" 
+                            name="camera_id" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('camera_id') border-red-500 @enderror"
+                            required>
+                        <option value="">Kamera Seçiniz</option>
+                        @foreach($cameras as $camera)
+                            <option value="{{ $camera->id }}" {{ old('camera_id') == $camera->id ? 'selected' : '' }}>
+                                {{ $camera->name }} - {{ $camera->specification }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('camera_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <!-- Battery -->
                 <div>
-                    <label for="battery" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="battery_id" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-battery-full mr-2"></i>Batarya *
                     </label>
-                    <input type="text" 
-                           id="battery" 
-                           name="battery" 
-                           value="{{ old('battery') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('battery') border-red-500 @enderror"
-                           placeholder="4422 mAh"
-                           required>
-                    @error('battery')
+                    <select id="battery_id" 
+                            name="battery_id" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('battery_id') border-red-500 @enderror"
+                            required>
+                        <option value="">Batarya Seçiniz</option>
+                        @foreach($batteries as $battery)
+                            <option value="{{ $battery->id }}" {{ old('battery_id') == $battery->id ? 'selected' : '' }}>
+                                {{ $battery->name }} ({{ $battery->capacity_mah }}mAh)
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('battery_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
-                <!-- OS -->
-                <div>
-                    <label for="os" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-desktop mr-2"></i>İşletim Sistemi *
-                    </label>
-                    <input type="text" 
-                           id="os" 
-                           name="os" 
-                           value="{{ old('os') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('os') border-red-500 @enderror"
-                           placeholder="iOS 17"
-                           required>
-                    @error('os')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
             </div>
 
             <!-- Additional Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
                 <!-- Stock Serial -->
                 <div>
                     <label for="stock_serial" class="block text-sm font-medium text-gray-700 mb-2">
@@ -289,36 +309,18 @@
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
-
-                <!-- WhatsApp Number -->
-                <div>
-                    <label for="whatsapp_number" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fab fa-whatsapp mr-2"></i>WhatsApp Numarası *
-                    </label>
-                    <input type="text" 
-                           id="whatsapp_number" 
-                           name="whatsapp_number" 
-                           value="{{ old('whatsapp_number') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('whatsapp_number') border-red-500 @enderror"
-                           placeholder="905551234567"
-                           required>
-                    @error('whatsapp_number')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
             </div>
 
             <!-- Description -->
             <div>
                 <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-                    <i class="fas fa-align-left mr-2"></i>Açıklama *
+                    <i class="fas fa-align-left mr-2"></i>Açıklama (Bu alan Web sitesinde görünecektir. Boş Bırakılabilir)
                 </label>
                 <textarea id="description" 
                           name="description" 
                           rows="4"
                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('description') border-red-500 @enderror"
-                          placeholder="Telefon hakkında detaylı açıklama..."
-                          required>{{ old('description') }}</textarea>
+                          placeholder="Telefon hakkında detaylı açıklama...">{{ old('description') }}</textarea>
                 @error('description')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
@@ -327,13 +329,13 @@
             <!-- Notes -->
             <div>
                 <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
-                    <i class="fas fa-sticky-note mr-2"></i>Notlar
+                    <i class="fas fa-sticky-note mr-2"></i>Notlar (Bu alan sadece admin panelinde görünecektir)
                 </label>
                 <textarea id="notes" 
                           name="notes" 
                           rows="3"
                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('notes') border-red-500 @enderror"
-                          placeholder="Ek notlar...">{{ old('notes') }}</textarea>
+                          placeholder="Ekran Kırık , Kasa çizik , Pil bozuk gibi notlar...">{{ old('notes') }}</textarea>
                 @error('notes')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
@@ -351,7 +353,7 @@
                                value="{{ old('images.0') }}"
                                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                placeholder="https://example.com/image1.jpg">
-                        <button type="button" onclick="removeImageInput(this)" class="text-red-500 hover:text-red-700">
+                        <button type="button" onclick="removeImageInput(this)" class="text-red-500 hover:text-red-700" style="display: none;">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -405,10 +407,33 @@
             </button>
         `;
         container.appendChild(div);
+        updateRemoveButtons();
     }
 
     function removeImageInput(button) {
         button.parentElement.remove();
+        updateRemoveButtons();
     }
+
+    function updateRemoveButtons() {
+        const container = document.getElementById('image-inputs');
+        const inputs = container.querySelectorAll('div');
+        
+        inputs.forEach((div, index) => {
+            const removeButton = div.querySelector('button');
+            if (inputs.length === 1) {
+                // Eğer sadece 1 input varsa silme butonunu gizle
+                removeButton.style.display = 'none';
+            } else {
+                // Birden fazla input varsa silme butonunu göster
+                removeButton.style.display = 'block';
+            }
+        });
+    }
+
+    // Sayfa yüklendiğinde butonları güncelle
+    document.addEventListener('DOMContentLoaded', function() {
+        updateRemoveButtons();
+    });
 </script>
 @endsection

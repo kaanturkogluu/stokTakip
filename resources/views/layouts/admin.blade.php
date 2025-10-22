@@ -29,6 +29,16 @@
                         <i class="fas fa-mobile-alt mr-3"></i>
                         Telefon Ekle
                     </a>
+                    
+                    <a href="{{ route('admin.data.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.data.*') ? 'bg-gray-700 text-white' : '' }}">
+                        <i class="fas fa-database mr-3"></i>
+                        Veri Yönetimi
+                    </a>
+                    
+                    <div class="pt-2">
+                        <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Diğer</p>
+                    </div>
+                    
                     <a href="#" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200">
                         <i class="fas fa-users mr-3"></i>
                         Müşteriler

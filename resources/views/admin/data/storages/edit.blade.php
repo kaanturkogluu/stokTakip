@@ -1,0 +1,166 @@
+@extends('layouts.admin')
+
+@section('title', 'Depolama Düzenle - Admin Panel')
+@section('page-title', 'Depolama Düzenle')
+
+@section('content')
+<div class="max-w-2xl mx-auto">
+    <!-- Success Message -->
+    @if(session('success'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
+            <i class="fas fa-check-circle mr-2"></i>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Depolama Bilgilerini Düzenle</h3>
+            <p class="text-sm text-gray-600 mt-1">{{ $storage->name }} depolama seçeneğini düzenliyorsunuz</p>
+        </div>
+        
+        <form method="POST" action="{{ route('admin.data.storages.update', $storage) }}" class="p-6 space-y-6">
+            @csrf
+            @method('PUT')
+            
+            <!-- Name -->
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-hdd mr-2"></i>Depolama Adı *
+                </label>
+                <input type="text" 
+                       id="name" 
+                       name="name" 
+                       value="{{ old('name', $storage->name) }}"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('name') border-red-500 @enderror"
+                       placeholder="256GB"
+                       required>
+                @error('name')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <!-- Capacity -->
+            <div>
+                <label for="capacity_gb" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-database mr-2"></i>Kapasite (GB) *
+                </label>
+                <div class="relative">
+                    <input type="number" 
+                           id="capacity_gb" 
+                           name="capacity_gb" 
+                           value="{{ old('capacity_gb', $storage->capacity_gb) }}"
+                           min="1"
+                           max="2048"
+                           step="1"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('capacity_gb') border-red-500 @enderror"
+                           placeholder="256"
+                           required>
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 text-sm">GB</span>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Depolama kapasitesini GB cinsinden girin (1-2048 GB arası)</p>
+                @error('capacity_gb')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <!-- Capacity Preview -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-gray-900 mb-3">Kapasite Önizlemesi</h4>
+                <div class="flex items-center space-x-4">
+                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                        <i class="fas fa-hdd text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">
+                            <span class="font-medium">Depolama Adı:</span> 
+                            <span id="storage_name">{{ $storage->name }}</span>
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            <span class="font-medium">Kapasite:</span> 
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800" id="capacity_display">
+                                {{ old('capacity_gb', $storage->capacity_gb) }} GB
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Status -->
+            <div class="flex items-center">
+                <input type="checkbox" 
+                       id="is_active" 
+                       name="is_active" 
+                       value="1"
+                       {{ old('is_active', $storage->is_active) ? 'checked' : '' }}
+                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <label for="is_active" class="ml-2 text-sm text-gray-700">
+                    <i class="fas fa-check mr-1"></i>Aktif depolama seçeneği olarak işaretle
+                </label>
+            </div>
+
+            <!-- Storage Info -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-gray-900 mb-2">Depolama Bilgileri</h4>
+                <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div>
+                        <span class="font-medium">Oluşturulma:</span>
+                        <span class="ml-1">{{ $storage->created_at->format('d.m.Y H:i') }}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium">Son Güncelleme:</span>
+                        <span class="ml-1">{{ $storage->updated_at->format('d.m.Y H:i') }}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium">Telefon Sayısı:</span>
+                        <span class="ml-1">{{ $storage->phones_count ?? 0 }} telefon</span>
+                    </div>
+                    <div>
+                        <span class="font-medium">Durum:</span>
+                        <span class="ml-1">
+                            @if($storage->is_active)
+                                <span class="text-green-600 font-medium">Aktif</span>
+                            @else
+                                <span class="text-red-600 font-medium">Pasif</span>
+                            @endif
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                <a href="{{ route('admin.data.storages') }}" 
+                   class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-200">
+                    <i class="fas fa-times mr-2"></i>İptal
+                </a>
+                <button type="submit" 
+                        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">
+                    <i class="fas fa-save mr-2"></i>Değişiklikleri Kaydet
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Update preview when inputs change
+    document.addEventListener('DOMContentLoaded', function() {
+        const nameInput = document.getElementById('name');
+        const capacityInput = document.getElementById('capacity_gb');
+        const nameDisplay = document.getElementById('storage_name');
+        const capacityDisplay = document.getElementById('capacity_display');
+        
+        nameInput.addEventListener('input', function() {
+            nameDisplay.textContent = this.value;
+        });
+        
+        capacityInput.addEventListener('input', function() {
+            capacityDisplay.textContent = this.value + ' GB';
+        });
+    });
+</script>
+@endsection
