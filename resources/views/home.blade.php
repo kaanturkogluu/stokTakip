@@ -108,8 +108,12 @@
                     @foreach($phones as $phone)
                         <div class="phone-card bg-white rounded-lg shadow-lg overflow-hidden">
                             <div class="h-64 bg-gray-200 flex items-center justify-center">
-                                @if($phone->images && count($phone->images) > 0)
-                                    <img src="{{ $phone->images[0] }}" alt="{{ $phone->name }}" class="h-full w-full object-cover">
+                                @php
+                                    $images = is_string($phone->images) ? json_decode($phone->images, true) : $phone->images;
+                                    $firstImage = $images && is_array($images) && count($images) > 0 ? $images[0] : null;
+                                @endphp
+                                @if($firstImage)
+                                    <img src="{{ $firstImage }}" alt="{{ $phone->name }}" class="h-full w-full object-cover">
                                 @else
                                     <i class="fas fa-mobile-alt text-6xl text-gray-400"></i>
                                 @endif
@@ -117,13 +121,13 @@
                             <div class="p-6">
                                 <h3 class="text-xl font-semibold text-gray-800 mb-2">{{ $phone->name }}</h3>
                                 <div class="space-y-2 mb-4">
-                                    <p class="text-sm text-gray-600"><strong>Marka:</strong> {{ $phone->brand }}</p>
-                                    <p class="text-sm text-gray-600"><strong>Model:</strong> {{ $phone->model }}</p>
-                                    <p class="text-sm text-gray-600"><strong>Renk:</strong> {{ $phone->color }}</p>
-                                    <p class="text-sm text-gray-600"><strong>Depolama:</strong> {{ $phone->storage }}</p>
+                                    <p class="text-sm text-gray-600"><strong>Marka:</strong> {{ $phone->brand->name ?? 'N/A' }}</p>
+                                    <p class="text-sm text-gray-600"><strong>Model:</strong> {{ $phone->phoneModel->name ?? 'N/A' }}</p>
+                                    <p class="text-sm text-gray-600"><strong>Renk:</strong> {{ $phone->color->name ?? 'N/A' }}</p>
+                                    <p class="text-sm text-gray-600"><strong>Depolama:</strong> {{ $phone->storage->name ?? 'N/A' }}</p>
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <span class="text-2xl font-bold text-blue-600">{{ number_format($phone->price, 0, ',', '.') }} ₺</span>
+                                    <span class="text-2xl font-bold text-blue-600">{{ number_format($phone->sale_price ?? $phone->purchase_price, 0, ',', '.') }} ₺</span>
                                     <a href="{{ route('phones.show', $phone) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-300">
                                         Detayları Gör
                                     </a>
