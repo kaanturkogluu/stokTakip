@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Girişi - Macrotech</title>
+    <title>Admin Girişi - {{ App\Models\Setting::getValue('site_name', 'Macrotech') }}</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -11,9 +11,9 @@
     <div class="max-w-md w-full mx-4">
         <!-- Logo -->
         <div class="text-center mb-8">
-            <img src="/images/logo.svg" alt="Macrotech Logo" class="h-16 w-auto mx-auto mb-4">
+            <img src="{{ App\Models\Setting::getValue('site_logo', '/images/logo.svg') }}" alt="{{ App\Models\Setting::getValue('site_name', 'Macrotech') }} Logo" class="h-16 w-auto mx-auto mb-4">
             <h1 class="text-2xl font-bold text-white">Admin Panel</h1>
-            <p class="text-gray-300 mt-2">Macrotech Yönetim Paneli</p>
+            <p class="text-gray-300 mt-2">{{ App\Models\Setting::getValue('site_name', 'Macrotech') }} Yönetim Paneli</p>
         </div>
 
         <!-- Login Form -->
@@ -100,7 +100,7 @@
         <!-- Footer -->
         <div class="text-center mt-8">
             <p class="text-gray-300 text-sm">
-                © 2024 Macrotech. Tüm hakları saklıdır.
+                © 2024 {{ App\Models\Setting::getValue('site_name', 'Macrotech') }}. Tüm hakları saklıdır.
             </p>
         </div>
     </div>

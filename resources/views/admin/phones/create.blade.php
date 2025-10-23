@@ -184,120 +184,87 @@
                 </div>
             </div>
 
-            <!-- Technical Specifications -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Storage -->
-                <div>
-                    <label for="storage_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-hdd mr-2"></i>Depolama *
-                    </label>
-                    <select id="storage_id" 
-                            name="storage_id" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('storage_id') border-red-500 @enderror"
-                            required>
-                        <option value="">Depolama Seçiniz</option>
-                        @foreach($storages as $storage)
-                            <option value="{{ $storage->id }}" {{ old('storage_id') == $storage->id ? 'selected' : '' }}>
-                                {{ $storage->name }} ({{ $storage->capacity_gb }}GB)
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('storage_id')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
+            <!-- Zorunlu Teknik Özellikler -->
+            <div class="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">
+                    <i class="fas fa-cogs mr-2"></i>Zorunlu Teknik Özellikler
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Storage -->
+                    <div>
+                        <label for="storage_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-hdd mr-2"></i>Depolama *
+                        </label>
+                        <select id="storage_id" 
+                                name="storage_id" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('storage_id') border-red-500 @enderror"
+                                required>
+                            <option value="">Depolama Seçiniz</option>
+                            @foreach($storages as $storage)
+                                <option value="{{ $storage->id }}" {{ old('storage_id') == $storage->id ? 'selected' : '' }}>
+                                    {{ $storage->name }} ({{ $storage->capacity_gb }}GB)
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('storage_id')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- RAM -->
+                    <div>
+                        <label for="ram_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-microchip mr-2"></i>RAM *
+                        </label>
+                        <select id="ram_id" 
+                                name="ram_id" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('ram_id') border-red-500 @enderror"
+                                required>
+                            <option value="">RAM Seçiniz</option>
+                            @foreach($rams as $ram)
+                                <option value="{{ $ram->id }}" {{ old('ram_id') == $ram->id ? 'selected' : '' }}>
+                                    {{ $ram->name }} ({{ $ram->capacity_gb }}GB)
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('ram_id')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Battery -->
+                    <div>
+                        <label for="battery_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-battery-full mr-2"></i>Batarya *
+                        </label>
+                        <select id="battery_id" 
+                                name="battery_id" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('battery_id') border-red-500 @enderror"
+                                required>
+                            <option value="">Batarya Seçiniz</option>
+                            @foreach($batteries as $battery)
+                                <option value="{{ $battery->id }}" {{ old('battery_id') == $battery->id ? 'selected' : '' }}>
+                                    {{ $battery->name }} ({{ $battery->capacity_mah }}mAh)
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('battery_id')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
-
-
-                <!-- RAM -->
-                <div>
-                    <label for="ram_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-microchip mr-2"></i>RAM *
-                    </label>
-                    <select id="ram_id" 
-                            name="ram_id" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('ram_id') border-red-500 @enderror"
-                            required>
-                        <option value="">RAM Seçiniz</option>
-                        @foreach($rams as $ram)
-                            <option value="{{ $ram->id }}" {{ old('ram_id') == $ram->id ? 'selected' : '' }}>
-                                {{ $ram->name }} ({{ $ram->capacity_gb }}GB)
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('ram_id')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <!-- Screen Size -->
-                <div>
-                    <label for="screen_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-mobile-alt mr-2"></i>Ekran Boyutu
-                    </label>
-                    <select id="screen_id" 
-                            name="screen_id" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('screen_id') border-red-500 @enderror">
-                        <option value="">Ekran Boyutu Seçiniz</option>
-                        @foreach($screens as $screen)
-                            <option value="{{ $screen->id }}" {{ old('screen_id') == $screen->id ? 'selected' : '' }}>
-                                {{ $screen->name }} ({{ $screen->resolution }})
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('screen_id')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <!-- Camera -->
-                <div>
-                    <label for="camera_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-camera mr-2"></i>Kamera
-                    </label>
-                    <select id="camera_id" 
-                            name="camera_id" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('camera_id') border-red-500 @enderror">
-                        <option value="">Kamera Seçiniz</option>
-                        @foreach($cameras as $camera)
-                            <option value="{{ $camera->id }}" {{ old('camera_id') == $camera->id ? 'selected' : '' }}>
-                                {{ $camera->name }} - {{ $camera->specification }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('camera_id')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <!-- Battery -->
-                <div>
-                    <label for="battery_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-battery-full mr-2"></i>Batarya *
-                    </label>
-                    <select id="battery_id" 
-                            name="battery_id" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('battery_id') border-red-500 @enderror"
-                            required>
-                        <option value="">Batarya Seçiniz</option>
-                        @foreach($batteries as $battery)
-                            <option value="{{ $battery->id }}" {{ old('battery_id') == $battery->id ? 'selected' : '' }}>
-                                {{ $battery->name }} ({{ $battery->capacity_mah }}mAh)
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('battery_id')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
             </div>
 
-            <!-- Additional Information -->
-            <div>
+            <!-- Stok ve Opsiyonel Bilgiler -->
+            <div class="border border-gray-200 rounded-lg p-6 bg-blue-50">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">
+                    <i class="fas fa-barcode mr-2"></i>Stok Seri Numaraları ve Opsiyonel Özellikler
+                </h3>
+                
                 <!-- Stock Serial Numbers -->
-                <div>
+                <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-barcode mr-2"></i>Stok Seri Numaraları
+                        <i class="fas fa-barcode mr-2"></i>Stok Seri Numaraları *
                     </label>
                     
                     <!-- Seri No Ekleme Alanı -->
@@ -318,8 +285,13 @@
                         <!-- Dinamik olarak eklenecek -->
                     </div>
                     
+                    <!-- Boş durum mesajı -->
+                    <div id="empty_serials_message" class="text-gray-500 text-sm italic mb-3 p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <i class="fas fa-info-circle mr-2"></i>Henüz seri numarası eklenmedi.
+                    </div>
+                    
                     <!-- Hidden input for form submission -->
-                    <input type="hidden" id="stock_serials_hidden" name="stock_serials" value="">
+                    <input type="hidden" id="stock_serials_hidden" name="stock_serials" value="{{ old('stock_serials', '') }}">
                     
                     @error('stock_serials')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -327,6 +299,54 @@
                     @error('stock_serials.*')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
+                </div>
+                
+                <!-- Opsiyonel Özellikler -->
+                <div class="border-t border-gray-300 pt-6">
+                    <h4 class="text-md font-medium text-gray-800 mb-4">
+                        <i class="fas fa-optional mr-2"></i>Opsiyonel Özellikler
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Screen Size -->
+                        <div>
+                            <label for="screen_id" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-mobile-alt mr-2"></i>Ekran Boyutu
+                            </label>
+                            <select id="screen_id" 
+                                    name="screen_id" 
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('screen_id') border-red-500 @enderror">
+                                <option value="">Ekran Boyutu Seçiniz</option>
+                                @foreach($screens as $screen)
+                                    <option value="{{ $screen->id }}" {{ old('screen_id') == $screen->id ? 'selected' : '' }}>
+                                        {{ $screen->name }} ({{ $screen->resolution }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('screen_id')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Camera -->
+                        <div>
+                            <label for="camera_id" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-camera mr-2"></i>Kamera
+                            </label>
+                            <select id="camera_id" 
+                                    name="camera_id" 
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('camera_id') border-red-500 @enderror">
+                                <option value="">Kamera Seçiniz</option>
+                                @foreach($cameras as $camera)
+                                    <option value="{{ $camera->id }}" {{ old('camera_id') == $camera->id ? 'selected' : '' }}>
+                                        {{ $camera->name }} - {{ $camera->specification }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('camera_id')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -366,16 +386,31 @@
                     <i class="fas fa-images mr-2"></i>Resim URL'leri
                 </label>
                 <div id="image-inputs">
-                    <div class="flex items-center space-x-2 mb-2">
-                        <input type="text" 
-                               name="images[]" 
-                               value="{{ old('images.0') }}"
-                               class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               placeholder="https://example.com/image1.jpg">
-                        <button type="button" onclick="removeImageInput(this)" class="text-red-500 hover:text-red-700" style="display: none;">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+                    @if(old('images') && count(old('images')) > 0)
+                        @foreach(old('images') as $index => $image)
+                            <div class="flex items-center space-x-2 mb-2">
+                                <input type="text" 
+                                       name="images[]" 
+                                       value="{{ $image }}"
+                                       class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="https://example.com/image{{ $index + 1 }}.jpg">
+                                <button type="button" onclick="removeImageInput(this)" class="text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="flex items-center space-x-2 mb-2">
+                            <input type="text" 
+                                   name="images[]" 
+                                   value=""
+                                   class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="https://example.com/image1.jpg">
+                            <button type="button" onclick="removeImageInput(this)" class="text-red-500 hover:text-red-700" style="display: none;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    @endif
                 </div>
                 <button type="button" onclick="addImageInput()" class="mt-2 text-blue-600 hover:text-blue-800 text-sm">
                     <i class="fas fa-plus mr-1"></i>Resim Ekle
@@ -412,6 +447,19 @@
 </div>
 
 <script>
+
+    document.addEventListener('submit', function() {
+
+      
+        let serialNumbersInput = document.getElementById('stock_serials_hidden');
+        if (serialNumbersInput.value.length === 0) {
+            event.preventDefault();
+            alert('Lütfen en az bir seri numarası ekleyin.');
+            return false;
+        }
+      
+       
+    });
     function addImageInput() {
         const container = document.getElementById('image-inputs');
         const div = document.createElement('div');
@@ -450,9 +498,53 @@
         });
     }
 
-    // Sayfa yüklendiğinde butonları güncelle
-    document.addEventListener('DOMContentLoaded', function() {
-        updateRemoveButtons();
+        // Sayfa yüklendiğinde butonları güncelle
+        document.addEventListener('DOMContentLoaded', function() {
+            // Seri numarası değişkenini en başta tanımla
+            let serialNumbers = [];
+            
+            updateRemoveButtons();
+            updateEmptyMessage();
+            
+            // Eğer validation hatası varsa, eski seri numaralarını geri yükle
+            const oldStockSerials = document.getElementById('stock_serials_hidden').value;
+            if (oldStockSerials) {
+                try {
+                    const serials = JSON.parse(oldStockSerials);
+                    if (Array.isArray(serials)) {
+                        serials.forEach(serial => {
+                            if (serial && !serialNumbers.includes(serial)) {
+                                serialNumbers.push(serial);
+                                
+                                // UI'da göster
+                                const serialItem = document.createElement('div');
+                                serialItem.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg border';
+                                serialItem.innerHTML = `
+                                    <div class="flex items-center">
+                                        <i class="fas fa-barcode text-gray-500 mr-2"></i>
+                                        <span class="font-mono text-sm">${serial}</span>
+                                    </div>
+                                    <button type="button" 
+                                            class="text-red-500 hover:text-red-700 transition duration-200 remove-serial-btn"
+                                            data-serial="${serial}">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                `;
+                                
+                                serialNumbersList.appendChild(serialItem);
+                                
+                                // Kaldır butonuna event listener ekle
+                                serialItem.querySelector('.remove-serial-btn').addEventListener('click', function() {
+                                    const serialToRemove = this.getAttribute('data-serial');
+                                    removeSerialNumber(serialToRemove);
+                                });
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error parsing old stock serials:', e);
+                }
+            }
         
         // Marka seçimi değiştiğinde modelleri yükle
         const brandSelect = document.getElementById('brand_id');
@@ -609,7 +701,20 @@
         const addSerialBtn = document.getElementById('add_serial_btn');
         const serialNumbersList = document.getElementById('serial_numbers_list');
         const stockSerialsHidden = document.getElementById('stock_serials_hidden');
-        let serialNumbers = [];
+        
+        function updateHiddenInput() {
+            stockSerialsHidden.value = JSON.stringify(serialNumbers);
+            updateEmptyMessage();
+        }
+        
+        function updateEmptyMessage() {
+            const emptyMessage = document.getElementById('empty_serials_message');
+            if (serialNumbers.length === 0) {
+                emptyMessage.style.display = 'block';
+            } else {
+                emptyMessage.style.display = 'none';
+            }
+        }
         
         // Enter tuşu ile ekleme
         newSerialInput.addEventListener('keypress', function(e) {
@@ -686,18 +791,12 @@
             updateHiddenInput();
         }
         
-        function updateHiddenInput() {
-            stockSerialsHidden.value = JSON.stringify(serialNumbers);
-        }
-        
-        // Form gönderilmeden önce kontrol
+        // Form gönderilmeden önce sadece hidden input'u güncelle
         document.querySelector('form').addEventListener('submit', function(e) {
-            if (serialNumbers.length === 0) {
-                e.preventDefault();
-                alert('En az bir seri numarası eklemelisiniz');
-                return false;
-            }
+            // Hidden input'u güncelle (son kez)
+            updateHiddenInput();
         });
+        
     });
 </script>
 @endsection

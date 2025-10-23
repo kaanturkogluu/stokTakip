@@ -205,6 +205,37 @@ class AdminController extends Controller
             'is_featured' => 'boolean',
             'images' => 'nullable|array',
             'images.*' => 'nullable|string'
+        ], [
+            'name.required' => 'Telefon adı alanı zorunludur.',
+            'name.string' => 'Telefon adı metin formatında olmalıdır.',
+            'name.max' => 'Telefon adı en fazla 255 karakter olabilir.',
+            'purchase_price.required' => 'Alış fiyatı alanı zorunludur.',
+            'purchase_price.numeric' => 'Alış fiyatı sayısal bir değer olmalıdır.',
+            'purchase_price.min' => 'Alış fiyatı 0\'dan küçük olamaz.',
+            'sale_price.numeric' => 'Satış fiyatı sayısal bir değer olmalıdır.',
+            'sale_price.min' => 'Satış fiyatı 0\'dan küçük olamaz.',
+            'brand_id.required' => 'Marka seçimi zorunludur.',
+            'brand_id.exists' => 'Seçilen marka geçersizdir.',
+            'phone_model_id.required' => 'Model seçimi zorunludur.',
+            'phone_model_id.exists' => 'Seçilen model geçersizdir.',
+            'color_id.exists' => 'Seçilen renk geçersizdir.',
+            'storage_id.required' => 'Depolama seçimi zorunludur.',
+            'storage_id.exists' => 'Seçilen depolama geçersizdir.',
+            'ram_id.required' => 'RAM seçimi zorunludur.',
+            'ram_id.exists' => 'Seçilen RAM geçersizdir.',
+            'screen_id.exists' => 'Seçilen ekran boyutu geçersizdir.',
+            'camera_id.exists' => 'Seçilen kamera geçersizdir.',
+            'battery_id.required' => 'Batarya seçimi zorunludur.',
+            'battery_id.exists' => 'Seçilen batarya geçersizdir.',
+            'condition.required' => 'Durum seçimi zorunludur.',
+            'condition.in' => 'Durum sıfır veya ikinci el olmalıdır.',
+            'origin.required' => 'Menşei seçimi zorunludur.',
+            'origin.in' => 'Menşei Türkiye veya yurtdışı olmalıdır.',
+            'stock_serials.required' => 'En az bir seri numarası eklemelisiniz.',
+            'stock_serials.string' => 'Seri numaraları metin formatında olmalıdır.',
+            'is_featured.boolean' => 'Öne çıkan telefon değeri doğru/yanlış olmalıdır.',
+            'images.array' => 'Resimler dizi formatında olmalıdır.',
+            'images.*.string' => 'Resim URL\'leri metin formatında olmalıdır.'
         ]);
 
         // Seri numaralarını decode et

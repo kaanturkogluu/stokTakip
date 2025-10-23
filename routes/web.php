@@ -23,6 +23,8 @@ Route::get('/cerez-politikasi', function () {
 })->name('cookie-policy');
 
 // Admin Routes
+
+Route::get('/giris', [AdminController::class, 'login'])->name('admin.login');
 Route::get('/login', [AdminController::class, 'login'])->name('admin.login');
 Route::post('/login', [AdminController::class, 'authenticate'])->name('admin.authenticate');
 Route::get('/admin', [AdminController::class, 'dashboard'])->name('admin.dashboard');
