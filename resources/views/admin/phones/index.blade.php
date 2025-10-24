@@ -114,9 +114,6 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             <i class="fas fa-shopping-cart mr-2"></i>Satış Durumu
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            <i class="fas fa-calendar mr-2"></i>Tarih
-                        </th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                             <i class="fas fa-cog mr-2"></i>İşlemler
                         </th>
@@ -124,7 +121,9 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($phones as $phone)
-                        <tr class="hover:bg-gray-50">
+                        <tr class="hover:bg-gray-50 cursor-pointer transition-colors duration-200" 
+                            ondblclick="goToPhoneDetail({{ $phone->id }})"
+                            title="Detayları görmek için çift tıklayın">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-12 w-12">
@@ -164,15 +163,16 @@
                             <td class="px-6 py-4">
                                 <div class="text-sm text-gray-900">
                                     <div class="flex flex-wrap gap-1">
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                            {{ $phone->color->name ?? 'N/A' }}
-                                        </span>
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            {{ $phone->storage->name ?? 'N/A' }}
-                                        </span>
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                            N/A
-                                        </span>
+                                        @if($phone->color && $phone->color->name)
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                {{ $phone->color->name }}
+                                            </span>
+                                        @endif
+                                        @if($phone->storage && $phone->storage->name)
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                {{ $phone->storage->name }}
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                             </td>
@@ -216,9 +216,6 @@
                                     </span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $phone->created_at->format('d.m.Y H:i') }}
-                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex justify-end space-x-2">
                                     <a href="{{ route('admin.phones.show', $phone) }}" 
@@ -241,7 +238,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center">
+                            <td colspan="7" class="px-6 py-12 text-center">
                                 <div class="text-gray-500">
                                     <i class="fas fa-mobile-alt text-4xl mb-4"></i>
                                     <p class="text-lg font-medium">Henüz telefon eklenmemiş</p>
@@ -264,6 +261,10 @@
 </div>
 
 <script>
+function goToPhoneDetail(phoneId) {
+    window.location.href = `/admin/phones/${phoneId}`;
+}
+
 function deletePhone(phoneId) {
     Swal.fire({
         title: 'Emin misiniz?',

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PhoneController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\CustomerController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PhoneController::class, 'index'])->name('home');
@@ -76,3 +77,16 @@ Route::post('/admin/settings/upload-favicon', [AdminController::class, 'uploadFa
 
 // Admin Reports Routes
 Route::get('/admin/reports', [AdminController::class, 'reports'])->name('admin.reports');
+
+// Admin Customer Routes
+Route::get('/admin/customers', [CustomerController::class, 'index'])->name('admin.customers.index');
+Route::get('/admin/customers/create', [CustomerController::class, 'create'])->name('admin.customers.create');
+Route::post('/admin/customers', [CustomerController::class, 'store'])->name('admin.customers.store');
+Route::get('/admin/customers/{customer}', [CustomerController::class, 'show'])->name('admin.customers.show');
+Route::get('/admin/customers/{customer}/edit', [CustomerController::class, 'edit'])->name('admin.customers.edit');
+Route::put('/admin/customers/{customer}', [CustomerController::class, 'update'])->name('admin.customers.update');
+Route::delete('/admin/customers/{customer}', [CustomerController::class, 'destroy'])->name('admin.customers.destroy');
+
+// Admin Customer Payment Routes
+Route::get('/admin/customers/{customer}/payment', [CustomerController::class, 'paymentForm'])->name('admin.customers.payment');
+Route::post('/admin/customers/{customer}/payment', [CustomerController::class, 'processPayment'])->name('admin.customers.payment.process');

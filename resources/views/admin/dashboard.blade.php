@@ -181,6 +181,105 @@
                     </div>
                 </div>
                 
+                <div class="mb-4" id="noteSection" style="display: none;">
+                    <label for="saleNote" class="block text-sm font-medium text-gray-700 mb-2">
+                        Satış Notu (Opsiyonel)
+                    </label>
+                    <textarea id="saleNote" 
+                              name="sale_note"
+                              rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Satış ile ilgili notlarınızı buraya yazabilirsiniz..."></textarea>
+                </div>
+                
+                <div class="mb-4" id="customerSection" style="display: none;">
+                    <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                        <h4 class="text-sm font-medium text-blue-900 mb-3">Müşteri Bilgileri</h4>
+                        
+                        <!-- Add to Customer List Checkbox -->
+                        <div class="mb-4">
+                            <label class="flex items-center">
+                                <input type="checkbox" 
+                                       id="addToCustomers" 
+                                       class="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-sm font-medium text-gray-700">Cariye Ekle</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Customer Form (Hidden by default) -->
+                        <div id="customerForm" class="space-y-3" style="display: none;">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label for="customerName" class="block text-xs font-medium text-gray-700 mb-1">
+                                        Ad
+                                    </label>
+                                    <input type="text" 
+                                           id="customerName" 
+                                           name="customer_name"
+                                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                           placeholder="Müşteri adı">
+                                </div>
+                                <div>
+                                    <label for="customerSurname" class="block text-xs font-medium text-gray-700 mb-1">
+                                        Soyad
+                                    </label>
+                                    <input type="text" 
+                                           id="customerSurname" 
+                                           name="customer_surname"
+                                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                           placeholder="Müşteri soyadı">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="customerPhone" class="block text-xs font-medium text-gray-700 mb-1">
+                                    Telefon (Opsiyonel)
+                                </label>
+                                <input type="tel" 
+                                       id="customerPhone" 
+                                       name="customer_phone"
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                       placeholder="Telefon numarası">
+                            </div>
+                        </div>
+                        
+                        <!-- Payment Options -->
+                        <div class="mt-4">
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Ödeme Seçenekleri</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" 
+                                           name="payment_option" 
+                                           value="full" 
+                                           checked
+                                           class="form-radio h-4 w-4 text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-sm text-gray-700">Tam Ödeme</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" 
+                                           name="payment_option" 
+                                           value="partial" 
+                                           class="form-radio h-4 w-4 text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-sm text-gray-700">Kısmi Ödeme</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Partial Payment Amount (Hidden by default) -->
+                        <div id="partialPaymentSection" class="mt-3" style="display: none;">
+                            <label for="partialAmount" class="block text-xs font-medium text-gray-700 mb-1">
+                                Ödeme Miktarı (₺)
+                            </label>
+                            <input type="number" 
+                                   id="partialAmount" 
+                                   name="partial_amount"
+                                   step="0.01"
+                                   min="0.01"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="0.00">
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="flex justify-end space-x-3">
                     <button type="button" 
                             onclick="closeSaleModal()"
@@ -208,6 +307,8 @@ function openSaleModal() {
     document.getElementById('saleForm').reset();
     document.getElementById('phoneInfo').classList.add('hidden');
     document.getElementById('priceSection').style.display = 'none';
+    document.getElementById('noteSection').style.display = 'none';
+    document.getElementById('customerSection').style.display = 'none';
     document.getElementById('saleButton').disabled = true;
     document.getElementById('confirmDevice').checked = false;
     currentPhone = null;
@@ -218,6 +319,8 @@ function closeSaleModal() {
     document.getElementById('saleForm').reset();
     document.getElementById('phoneInfo').classList.add('hidden');
     document.getElementById('priceSection').style.display = 'none';
+    document.getElementById('noteSection').style.display = 'none';
+    document.getElementById('customerSection').style.display = 'none';
     document.getElementById('saleButton').disabled = true;
     document.getElementById('confirmDevice').checked = false;
     currentPhone = null;
@@ -308,9 +411,13 @@ function displayPhoneInfo(phone) {
         confirmCheckbox.addEventListener('change', function() {
             if (this.checked && !phone.is_sold) {
                 document.getElementById('priceSection').style.display = 'block';
+                document.getElementById('noteSection').style.display = 'block';
+                document.getElementById('customerSection').style.display = 'block';
                 document.getElementById('salePrice').focus();
             } else {
                 document.getElementById('priceSection').style.display = 'none';
+                document.getElementById('noteSection').style.display = 'none';
+                document.getElementById('customerSection').style.display = 'none';
                 document.getElementById('saleButton').disabled = true;
             }
         });
@@ -333,10 +440,58 @@ function displayPhoneInfo(phone) {
             document.getElementById('priceWarning').classList.add('hidden');
         }
     });
+
+    // Add event listeners for customer form interactions (only once)
+    if (!window.customerEventListenersAdded) {
+        const addToCustomersCheckbox = document.getElementById('addToCustomers');
+        const customerForm = document.getElementById('customerForm');
+        const paymentOptions = document.querySelectorAll('input[name="payment_option"]');
+        const partialPaymentSection = document.getElementById('partialPaymentSection');
+        const partialAmountInput = document.getElementById('partialAmount');
+
+        // Show/hide customer form when checkbox is toggled
+        if (addToCustomersCheckbox) {
+            addToCustomersCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    customerForm.style.display = 'block';
+                } else {
+                    customerForm.style.display = 'none';
+                }
+            });
+        }
+
+        // Show/hide partial payment section based on payment option
+        paymentOptions.forEach(option => {
+            option.addEventListener('change', function() {
+                if (this.value === 'partial') {
+                    partialPaymentSection.style.display = 'block';
+                    partialAmountInput.required = true;
+                } else {
+                    partialPaymentSection.style.display = 'none';
+                    partialAmountInput.required = false;
+                    partialAmountInput.value = '';
+                }
+            });
+        });
+
+        // Set max value for partial payment
+        if (partialAmountInput) {
+            partialAmountInput.addEventListener('input', function() {
+                const salePrice = parseFloat(document.getElementById('salePrice').value) || 0;
+                if (parseFloat(this.value) > salePrice) {
+                    this.value = salePrice;
+                }
+            });
+        }
+        
+        window.customerEventListenersAdded = true;
+    }
 }
 
 function processSale(event) {
     event.preventDefault();
+    
+    console.log('processSale function called'); // Debug log
     
     // Check if device is confirmed
     if (!document.getElementById('confirmDevice').checked) {
@@ -363,7 +518,72 @@ function processSale(event) {
     const formData = new FormData(event.target);
     const serialNumber = formData.get('serial_number');
     const salePrice = parseFloat(formData.get('sale_price'));
+    const saleNote = formData.get('sale_note');
     const purchasePrice = parseFloat(currentPhone.purchase_price);
+    
+    // Customer data
+    const addToCustomers = document.getElementById('addToCustomers').checked;
+    const customerName = formData.get('customer_name');
+    const customerSurname = formData.get('customer_surname');
+    const customerPhone = formData.get('customer_phone');
+    const paymentOption = formData.get('payment_option');
+    const partialAmount = parseFloat(formData.get('partial_amount')) || 0;
+    
+    console.log('Form data:', {
+        serialNumber,
+        salePrice,
+        addToCustomers,
+        customerName,
+        customerSurname,
+        paymentOption,
+        partialAmount
+    }); // Debug log
+    
+    // Validate sale price
+    if (!salePrice || salePrice <= 0) {
+        Swal.fire({
+            title: 'Uyarı!',
+            text: 'Lütfen geçerli bir satış fiyatı giriniz.',
+            icon: 'warning',
+            confirmButtonText: 'Tamam'
+        });
+        return;
+    }
+    
+    // Validate customer form if "Cariye Ekle" is checked
+    if (addToCustomers) {
+        if (!customerName || !customerSurname) {
+            Swal.fire({
+                title: 'Uyarı!',
+                text: 'Müşteri bilgileri eksik. Ad ve soyad alanları zorunludur.',
+                icon: 'warning',
+                confirmButtonText: 'Tamam'
+            });
+            return;
+        }
+    }
+    
+    // Validate partial payment
+    if (paymentOption === 'partial') {
+        if (!partialAmount || partialAmount <= 0) {
+            Swal.fire({
+                title: 'Uyarı!',
+                text: 'Kısmi ödeme miktarı giriniz.',
+                icon: 'warning',
+                confirmButtonText: 'Tamam'
+            });
+            return;
+        }
+        if (partialAmount > salePrice) {
+            Swal.fire({
+                title: 'Uyarı!',
+                text: 'Ödeme miktarı satış fiyatından fazla olamaz.',
+                icon: 'warning',
+                confirmButtonText: 'Tamam'
+            });
+            return;
+        }
+    }
     
     // Check if sale price is lower than purchase price
     if (salePrice < purchasePrice) {
@@ -378,16 +598,20 @@ function processSale(event) {
             cancelButtonText: 'İptal'
         }).then((result) => {
             if (result.isConfirmed) {
-                executeSale(serialNumber, salePrice);
+                executeSale(serialNumber, salePrice, saleNote, addToCustomers, customerName, customerSurname, customerPhone, paymentOption, partialAmount);
             }
         });
     } else {
         // Sale price is higher or equal, proceed directly
-        executeSale(serialNumber, salePrice);
+        executeSale(serialNumber, salePrice, saleNote, addToCustomers, customerName, customerSurname, customerPhone, paymentOption, partialAmount);
     }
 }
 
-function executeSale(serialNumber, salePrice) {
+function executeSale(serialNumber, salePrice, saleNote, addToCustomers, customerName, customerSurname, customerPhone, paymentOption, partialAmount) {
+    console.log('executeSale called with:', { 
+        serialNumber, salePrice, saleNote, addToCustomers, customerName, customerSurname, customerPhone, paymentOption, partialAmount 
+    }); // Debug log
+    
     // CSRF token al
     const tokenElement = document.querySelector('meta[name="csrf-token"]');
     if (!tokenElement) {
@@ -409,7 +633,14 @@ function executeSale(serialNumber, salePrice) {
         },
         body: JSON.stringify({
             serial_number: serialNumber,
-            sale_price: salePrice
+            sale_price: salePrice,
+            sale_note: saleNote,
+            add_to_customers: addToCustomers,
+            customer_name: customerName,
+            customer_surname: customerSurname,
+            customer_phone: customerPhone,
+            payment_option: paymentOption,
+            partial_amount: partialAmount
         })
     })
     .then(response => response.json())

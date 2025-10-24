@@ -12,6 +12,8 @@ use App\Models\Brand;
 use App\Models\PhoneModel;
 use App\Models\Color;
 use App\Models\Storage as StorageModel;
+use App\Models\Customer;
+use App\Models\CustomerPayment;
 
 class AdminController extends Controller
 {
@@ -695,7 +697,14 @@ class AdminController extends Controller
 
         $request->validate([
             'serial_number' => 'required|string',
-            'sale_price' => 'required|numeric|min:0'
+            'sale_price' => 'required|numeric|min:0',
+            'sale_note' => 'nullable|string|max:1000',
+            'add_to_customers' => 'boolean',
+            'customer_name' => 'required_if:add_to_customers,true|string|max:255',
+            'customer_surname' => 'required_if:add_to_customers,true|string|max:255',
+            'customer_phone' => 'nullable|string|max:20',
+            'payment_option' => 'required|in:full,partial',
+            'partial_amount' => 'required_if:payment_option,partial|numeric|min:0.01'
         ]);
 
         $phone = Phone::where('stock_serial', $request->serial_number)->first();
@@ -714,17 +723,90 @@ class AdminController extends Controller
             ]);
         }
 
+        // Create customer if requested
+        $customer = null;
+        if ($request->add_to_customers) {
+            // Get device information
+            $deviceInfo = $this->getDeviceInfo($phone);
+            $customerNotes = "Satış Sırasında Eklendi - " . $deviceInfo;
+            
+            $customer = Customer::create([
+                'name' => $request->customer_name,
+                'surname' => $request->customer_surname,
+                'phone' => $request->customer_phone,
+                'debt' => 0, // Will be updated based on payment option
+                'notes' => $customerNotes
+            ]);
+        }
+
+        // Calculate payment and debt
+        $salePrice = $request->sale_price;
+        $paymentAmount = $request->payment_option === 'partial' ? $request->partial_amount : $salePrice;
+        $remainingDebt = $salePrice - $paymentAmount;
+
+        // Update customer debt if partial payment
+        if ($customer && $remainingDebt > 0) {
+            $customer->update(['debt' => $remainingDebt]);
+            
+            // Create payment record for partial payment
+            $deviceInfo = $this->getDeviceInfo($phone);
+            
+            CustomerPayment::create([
+                'customer_id' => $customer->id,
+                'amount' => $paymentAmount,
+                'previous_debt' => 0,
+                'remaining_debt' => $remainingDebt,
+                'payment_method' => 'cash',
+                'notes' => 'Telefon satışı - Kısmi ödeme - ' . $deviceInfo
+            ]);
+        }
+
         // Update phone as sold
-        $phone->update([
+        $updateData = [
             'is_sold' => true,
-            'sale_price' => $request->sale_price,
+            'sale_price' => $salePrice,
             'sold_at' => now()
-        ]);
+        ];
+        
+        // Add sale note if provided
+        if ($request->filled('sale_note')) {
+            $updateData['notes'] = $request->sale_note;
+        }
+        
+        $phone->update($updateData);
+
+        // Prepare success message
+        $message = "{$phone->name} cihazı başarıyla satıldı. Satış fiyatı: " . number_format($salePrice, 2) . " ₺";
+        
+        if ($customer) {
+            $message .= " - Müşteri: {$customer->full_name}";
+            if ($remainingDebt > 0) {
+                $message .= " - Kalan borç: " . number_format($remainingDebt, 2) . " ₺";
+            }
+        }
 
         return response()->json([
             'success' => true,
-            'message' => "{$phone->name} cihazı başarıyla satıldı. Satış fiyatı: " . number_format($request->sale_price, 2) . " ₺"
+            'message' => $message
         ]);
+    }
+
+    // Helper function to get device information
+    private function getDeviceInfo($phone)
+    {
+        $deviceInfo = $phone->name;
+        
+        if ($phone->brand && $phone->phoneModel) {
+            $deviceInfo = $phone->brand->name . ' ' . $phone->phoneModel->name;
+        } elseif ($phone->brand) {
+            $deviceInfo = $phone->brand->name . ' ' . $deviceInfo;
+        }
+        
+        if ($phone->storage) {
+            $deviceInfo .= ' ' . $phone->storage->name;
+        }
+        
+        return $deviceInfo;
     }
 
     // Settings functionality
