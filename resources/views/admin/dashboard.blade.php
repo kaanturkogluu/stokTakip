@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Dashboard - Admin Panel')
-@section('page-title', 'Dashboard')
+@section('title', 'Panel - Admin Panel')
+@section('page-title', 'Panel')
 
 @section('content')
 <div class="space-y-8">
@@ -643,8 +643,19 @@ function executeSale(serialNumber, salePrice, saleNote, addToCustomers, customer
             partial_amount: partialAmount
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response.json();
+    })
     .then(data => {
+        console.log('Response data:', data);
+        
         if (data.success) {
             Swal.fire({
                 title: 'Başarılı!',

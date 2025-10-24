@@ -15,17 +15,11 @@
         <!-- Sidebar -->
         <div id="sidebar" class="bg-gray-800 text-white w-64 min-h-screen transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out fixed lg:static z-30">
             <div class="p-4">
-                <!-- Logo -->
-                <div class="flex items-center mb-8">
-                    <img src="/images/logo.svg" alt="Macrotech Logo" class="h-8 w-auto mr-3">
-                    <span class="text-xl font-bold">Admin Panel</span>
-                </div>
-
                 <!-- Navigation -->
                 <nav class="space-y-2">
                     <a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.dashboard') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-tachometer-alt mr-3"></i>
-                        Dashboard
+                        Panel
                     </a>
                     <a href="{{ route('admin.phones.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.phones.index') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-list mr-3"></i>

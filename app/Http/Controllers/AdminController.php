@@ -695,19 +695,29 @@ class AdminController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $request->validate([
-            'serial_number' => 'required|string',
-            'sale_price' => 'required|numeric|min:0',
-            'sale_note' => 'nullable|string|max:1000',
-            'add_to_customers' => 'boolean',
-            'customer_name' => 'required_if:add_to_customers,true|string|max:255',
-            'customer_surname' => 'required_if:add_to_customers,true|string|max:255',
-            'customer_phone' => 'nullable|string|max:20',
-            'payment_option' => 'required|in:full,partial',
-            'partial_amount' => 'required_if:payment_option,partial|numeric|min:0.01'
-        ]);
+        try {
+            // Debug: Log the incoming request data
+            Log::info('Sale request data:', $request->all());
+            
+            $validationRules = [
+                'serial_number' => 'required|string',
+                'sale_price' => 'required|numeric|min:0',
+                'sale_note' => 'nullable|string|max:1000',
+                'add_to_customers' => 'nullable|boolean',
+                'customer_name' => 'required_if:add_to_customers,true|string|max:255',
+                'customer_surname' => 'required_if:add_to_customers,true|string|max:255',
+                'customer_phone' => 'nullable|string|max:20',
+                'payment_option' => 'required|in:full,partial'
+            ];
+            
+            // Only validate partial_amount if payment_option is partial
+            if ($request->payment_option === 'partial') {
+                $validationRules['partial_amount'] = 'required|numeric|min:0.01';
+            }
+            
+            $request->validate($validationRules);
 
-        $phone = Phone::where('stock_serial', $request->serial_number)->first();
+        $phone = Phone::with(['brand', 'phoneModel', 'storage'])->where('stock_serial', $request->serial_number)->first();
 
         if (!$phone) {
             return response()->json([
@@ -725,7 +735,8 @@ class AdminController extends Controller
 
         // Create customer if requested
         $customer = null;
-        if ($request->add_to_customers) {
+        $addToCustomers = filter_var($request->add_to_customers, FILTER_VALIDATE_BOOLEAN);
+        if ($addToCustomers) {
             // Get device information
             $deviceInfo = $this->getDeviceInfo($phone);
             $customerNotes = "Satış Sırasında Eklendi - " . $deviceInfo;
@@ -789,6 +800,14 @@ class AdminController extends Controller
             'success' => true,
             'message' => $message
         ]);
+        
+        } catch (\Exception $e) {
+            Log::error('Sale error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Satış işlemi sırasında bir hata oluştu: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     // Helper function to get device information
