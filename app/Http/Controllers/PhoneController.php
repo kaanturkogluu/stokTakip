@@ -10,7 +10,7 @@ class PhoneController extends Controller
 {
     public function index()
     {
-        $phones = Phone::with(['brand', 'phoneModel', 'color', 'storage', 'ram', 'screen', 'camera', 'battery'])
+        $phones = Phone::with(['brand', 'phoneModel', 'color', 'storage'])
                       ->where('is_featured', true)
                       ->take(6)
                       ->get();
@@ -19,7 +19,7 @@ class PhoneController extends Controller
 
     public function phones()
     {
-        $phones = Phone::with(['brand', 'phoneModel', 'color', 'storage', 'ram', 'screen', 'camera', 'battery'])
+        $phones = Phone::with(['brand', 'phoneModel', 'color', 'storage'])
                       ->where('is_sold', false)
                       ->orderBy('created_at', 'desc')
                       ->paginate(12);
@@ -28,10 +28,10 @@ class PhoneController extends Controller
 
     public function show(Phone $phone)
     {
-        $phone->load(['brand', 'phoneModel', 'color', 'storage', 'ram', 'screen', 'camera', 'battery']);
+        $phone->load(['brand', 'phoneModel', 'color', 'storage']);
         
         // İlgili telefonları getir (aynı marka veya model, mevcut telefon hariç)
-        $relatedPhones = Phone::with(['brand', 'phoneModel', 'color', 'storage', 'ram'])
+        $relatedPhones = Phone::with(['brand', 'phoneModel', 'color', 'storage'])
             ->where('id', '!=', $phone->id)
             ->where('is_sold', false)
             ->where(function($query) use ($phone) {

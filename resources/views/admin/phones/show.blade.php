@@ -168,22 +168,6 @@
                                 <span class="text-gray-600">Depolama:</span>
                                 <span class="font-medium">{{ $phone->storage->name }} ({{ $phone->storage->capacity_gb }}GB)</span>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">RAM:</span>
-                                <span class="font-medium">{{ $phone->ram->name }} ({{ $phone->ram->capacity_gb }}GB)</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Ekran:</span>
-                                <span class="font-medium">{{ $phone->screen->name }} ({{ $phone->screen->resolution }})</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Kamera:</span>
-                                <span class="font-medium">{{ $phone->camera->name }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Batarya:</span>
-                                <span class="font-medium">{{ $phone->battery->name }} ({{ $phone->battery->capacity_mah }}mAh)</span>
-                            </div>
                         </div>
                     </div>
 

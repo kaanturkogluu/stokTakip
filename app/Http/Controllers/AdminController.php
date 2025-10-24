@@ -12,10 +12,6 @@ use App\Models\Brand;
 use App\Models\PhoneModel;
 use App\Models\Color;
 use App\Models\Storage as StorageModel;
-use App\Models\Ram;
-use App\Models\Screen;
-use App\Models\Camera;
-use App\Models\Battery;
 
 class AdminController extends Controller
 {
@@ -65,7 +61,7 @@ class AdminController extends Controller
             return redirect()->route('admin.login');
         }
 
-        $query = Phone::with(['brand', 'phoneModel', 'color', 'storage', 'ram', 'screen', 'camera', 'battery']);
+        $query = Phone::with(['brand', 'phoneModel', 'color', 'storage']);
 
         // Arama fonksiyonalitesi
         if ($request->filled('search')) {
@@ -168,14 +164,9 @@ class AdminController extends Controller
         $brands = Brand::where('is_active', true)->get();
         $colors = Color::where('is_active', true)->get();
         $storages = StorageModel::where('is_active', true)->get();
-        $rams = Ram::where('is_active', true)->get();
-        $screens = Screen::where('is_active', true)->get();
-        $cameras = Camera::where('is_active', true)->get();
-        $batteries = Battery::where('is_active', true)->get();
 
         return view('admin.phones.create', compact(
-            'brands', 'colors', 'storages', 
-            'rams', 'screens', 'cameras', 'batteries'
+            'brands', 'colors', 'storages'
         ));
     }
 
@@ -194,10 +185,6 @@ class AdminController extends Controller
             'phone_model_id' => 'required|exists:phone_models,id',
             'color_id' => 'nullable|exists:colors,id',
             'storage_id' => 'required|exists:storages,id',
-            'ram_id' => 'required|exists:rams,id',
-            'screen_id' => 'nullable|exists:screens,id',
-            'camera_id' => 'nullable|exists:cameras,id',
-            'battery_id' => 'required|exists:batteries,id',
             'condition' => 'required|in:sifir,ikinci_el',
             'origin' => 'required|in:yurtdisi,turkiye',
             'stock_serials' => 'required|string',
@@ -221,12 +208,6 @@ class AdminController extends Controller
             'color_id.exists' => 'Seçilen renk geçersizdir.',
             'storage_id.required' => 'Depolama seçimi zorunludur.',
             'storage_id.exists' => 'Seçilen depolama geçersizdir.',
-            'ram_id.required' => 'RAM seçimi zorunludur.',
-            'ram_id.exists' => 'Seçilen RAM geçersizdir.',
-            'screen_id.exists' => 'Seçilen ekran boyutu geçersizdir.',
-            'camera_id.exists' => 'Seçilen kamera geçersizdir.',
-            'battery_id.required' => 'Batarya seçimi zorunludur.',
-            'battery_id.exists' => 'Seçilen batarya geçersizdir.',
             'condition.required' => 'Durum seçimi zorunludur.',
             'condition.in' => 'Durum sıfır veya ikinci el olmalıdır.',
             'origin.required' => 'Menşei seçimi zorunludur.',
@@ -275,7 +256,7 @@ class AdminController extends Controller
         }
 
         // Telefon bilgilerini ilişkileriyle birlikte yükle
-        $phone->load(['brand', 'phoneModel', 'color', 'storage', 'ram', 'screen', 'camera', 'battery']);
+        $phone->load(['brand', 'phoneModel', 'color', 'storage']);
 
         return view('admin.phones.show', compact('phone'));
     }
@@ -287,16 +268,12 @@ class AdminController extends Controller
         }
 
         // Telefon bilgilerini ilişkileriyle birlikte yükle
-        $phone->load(['brand', 'phoneModel', 'color', 'storage', 'ram', 'screen', 'camera', 'battery']);
+        $phone->load(['brand', 'phoneModel', 'color', 'storage']);
 
         // Form için gerekli verileri yükle
         $brands = Brand::where('is_active', true)->orderBy('name')->get();
         $colors = Color::where('is_active', true)->orderBy('name')->get();
         $storages = StorageModel::where('is_active', true)->orderBy('capacity_gb')->get();
-        $rams = Ram::where('is_active', true)->orderBy('capacity_gb')->get();
-        $screens = Screen::where('is_active', true)->orderBy('size_inches')->get();
-        $cameras = Camera::where('is_active', true)->orderBy('name')->get();
-        $batteries = Battery::where('is_active', true)->orderBy('capacity_mah')->get();
 
         // Seçili markaya ait modelleri yükle
         $phoneModels = PhoneModel::where('brand_id', $phone->brand_id)
@@ -311,7 +288,7 @@ class AdminController extends Controller
                                    ->get();
 
         return view('admin.phones.edit', compact(
-            'phone', 'brands', 'colors', 'storages', 'rams', 'screens', 'cameras', 'batteries',
+            'phone', 'brands', 'colors', 'storages',
             'phoneModels', 'brandColors'
         ));
     }
@@ -331,10 +308,6 @@ class AdminController extends Controller
             'phone_model_id' => 'required|exists:phone_models,id',
             'color_id' => 'required|exists:colors,id',
             'storage_id' => 'required|exists:storages,id',
-            'ram_id' => 'required|exists:rams,id',
-            'screen_id' => 'required|exists:screens,id',
-            'camera_id' => 'required|exists:cameras,id',
-            'battery_id' => 'required|exists:batteries,id',
             'condition' => 'required|in:sifir,ikinci_el',
             'origin' => 'required|in:yurtdisi,turkiye',
             'stock_serial' => 'required|string|max:255',
@@ -430,45 +403,6 @@ class AdminController extends Controller
     }
 
 
-    public function rams()
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $rams = Ram::withCount('phones')->get();
-        return view('admin.data.rams', compact('rams'));
-    }
-
-    public function screens()
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $screens = Screen::withCount('phones')->get();
-        return view('admin.data.screens', compact('screens'));
-    }
-
-    public function cameras()
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $cameras = Camera::withCount('phones')->get();
-        return view('admin.data.cameras', compact('cameras'));
-    }
-
-    public function batteries()
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $batteries = Battery::withCount('phones')->get();
-        return view('admin.data.batteries', compact('batteries'));
-    }
 
     // Create Methods
     public function createBrand()
@@ -654,169 +588,8 @@ class AdminController extends Controller
     }
 
 
-    public function createRam()
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
 
-        return view('admin.data.rams.create');
-    }
 
-    public function storeRam(Request $request)
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255|unique:rams',
-            'capacity_gb' => 'required|integer|min:1',
-            'is_active' => 'boolean'
-        ]);
-
-        Ram::create($request->all());
-
-        return redirect()->route('admin.data.rams')->with('success', 'RAM başarıyla eklendi!');
-    }
-
-    public function editRam(Ram $ram)
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        return view('admin.data.rams.edit', compact('ram'));
-    }
-
-    public function updateRam(Request $request, Ram $ram)
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255|unique:rams,name,' . $ram->id,
-            'capacity_gb' => 'required|integer|min:1',
-            'is_active' => 'boolean'
-        ]);
-
-        $data = $request->all();
-        $data['is_active'] = $request->has('is_active');
-
-        $ram->update($data);
-
-        return redirect()->route('admin.data.rams')->with('success', 'RAM başarıyla güncellendi!');
-    }
-
-    public function createScreen()
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        return view('admin.data.screens.create');
-    }
-
-    public function storeScreen(Request $request)
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255|unique:screens',
-            'size_inches' => 'required|numeric|min:1|max:20',
-            'resolution' => 'nullable|string|max:255',
-            'is_active' => 'boolean'
-        ]);
-
-        Screen::create($request->all());
-
-        return redirect()->route('admin.data.screens')->with('success', 'Ekran başarıyla eklendi!');
-    }
-
-    public function editScreen(Screen $screen)
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        return view('admin.data.screens.edit', compact('screen'));
-    }
-
-    public function updateScreen(Request $request, Screen $screen)
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255|unique:screens,name,' . $screen->id,
-            'size_inches' => 'required|numeric|min:1|max:20',
-            'resolution' => 'nullable|string|max:255',
-            'is_active' => 'boolean'
-        ]);
-
-        $data = $request->all();
-        $data['is_active'] = $request->has('is_active');
-
-        $screen->update($data);
-
-        return redirect()->route('admin.data.screens')->with('success', 'Ekran başarıyla güncellendi!');
-    }
-
-    public function createCamera()
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        return view('admin.data.cameras.create');
-    }
-
-    public function storeCamera(Request $request)
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255|unique:cameras',
-            'specification' => 'required|string|max:255',
-            'is_active' => 'boolean'
-        ]);
-
-        Camera::create($request->all());
-
-        return redirect()->route('admin.data.cameras')->with('success', 'Kamera başarıyla eklendi!');
-    }
-
-    public function createBattery()
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        return view('admin.data.batteries.create');
-    }
-
-    public function storeBattery(Request $request)
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255|unique:batteries',
-            'capacity_mah' => 'required|integer|min:100',
-            'is_active' => 'boolean'
-        ]);
-
-        Battery::create($request->all());
-
-        return redirect()->route('admin.data.batteries')->with('success', 'Batarya başarıyla eklendi!');
-    }
 
     public function createPhoneModel()
     {
@@ -883,34 +656,6 @@ class AdminController extends Controller
         return redirect()->route('admin.data.phone-models')->with('success', 'Telefon modeli başarıyla güncellendi!');
     }
 
-    public function editCamera(Camera $camera)
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        return view('admin.data.cameras.edit', compact('camera'));
-    }
-
-    public function updateCamera(Request $request, Camera $camera)
-    {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255|unique:cameras,name,' . $camera->id,
-            'specification' => 'required|string|max:255',
-            'is_active' => 'boolean'
-        ]);
-
-        $data = $request->all();
-        $data['is_active'] = $request->has('is_active');
-
-        $camera->update($data);
-
-        return redirect()->route('admin.data.cameras')->with('success', 'Kamera başarıyla güncellendi!');
-    }
 
     // Sale functionality
     public function searchPhoneBySerial(Request $request)
@@ -925,7 +670,7 @@ class AdminController extends Controller
             return response()->json(['success' => false, 'message' => 'Seri numarası gerekli']);
         }
 
-        $phone = Phone::with(['brand', 'phoneModel', 'color', 'storage', 'ram', 'screen', 'camera', 'battery'])
+        $phone = Phone::with(['brand', 'phoneModel', 'color', 'storage'])
                      ->where('stock_serial', 'LIKE', "%{$serialNumber}%")
                      ->first();
 

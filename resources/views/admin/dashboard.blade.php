@@ -268,10 +268,6 @@ function displayPhoneInfo(phone) {
             <div class="text-gray-600 mb-1"><strong>Model:</strong> ${phone.phone_model?.name || 'N/A'}</div>
             <div class="text-gray-600 mb-1"><strong>Renk:</strong> ${phone.color?.name || 'N/A'}</div>
             <div class="text-gray-600 mb-1"><strong>Depolama:</strong> ${phone.storage?.name || 'N/A'}</div>
-            <div class="text-gray-600 mb-1"><strong>RAM:</strong> ${phone.ram?.name || 'N/A'}</div>
-            <div class="text-gray-600 mb-1"><strong>Ekran:</strong> ${phone.screen?.name || 'N/A'}</div>
-            <div class="text-gray-600 mb-1"><strong>Kamera:</strong> ${phone.camera?.name || 'N/A'}</div>
-            <div class="text-gray-600 mb-1"><strong>Batarya:</strong> ${phone.battery?.name || 'N/A'}</div>
             <div class="text-gray-600 mb-1"><strong>Durum:</strong> ${phone.condition === 'sifir' ? 'Sıfır' : 'İkinci El'}</div>
             <div class="text-gray-600 mb-1"><strong>Menşei:</strong> ${phone.origin === 'turkiye' ? 'Türkiye' : 'Yurtdışı'}</div>
             <div class="text-green-600 font-bold text-lg mt-2">Alış Fiyatı: ${parseFloat(phone.purchase_price).toFixed(2)} ₺</div>

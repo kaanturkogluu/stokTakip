@@ -211,47 +211,6 @@
                         @enderror
                     </div>
 
-                    <!-- RAM -->
-                    <div>
-                        <label for="ram_id" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-microchip mr-2"></i>RAM *
-                        </label>
-                        <select id="ram_id" 
-                                name="ram_id" 
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('ram_id') border-red-500 @enderror"
-                                required>
-                            <option value="">RAM Seçiniz</option>
-                            @foreach($rams as $ram)
-                                <option value="{{ $ram->id }}" {{ old('ram_id') == $ram->id ? 'selected' : '' }}>
-                                    {{ $ram->name }} ({{ $ram->capacity_gb }}GB)
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('ram_id')
-                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Battery -->
-                    <div>
-                        <label for="battery_id" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-battery-full mr-2"></i>Batarya *
-                        </label>
-                        <select id="battery_id" 
-                                name="battery_id" 
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('battery_id') border-red-500 @enderror"
-                                required>
-                            <option value="">Batarya Seçiniz</option>
-                            @foreach($batteries as $battery)
-                                <option value="{{ $battery->id }}" {{ old('battery_id') == $battery->id ? 'selected' : '' }}>
-                                    {{ $battery->name }} ({{ $battery->capacity_mah }}mAh)
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('battery_id')
-                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
                 </div>
             </div>
 
@@ -307,45 +266,7 @@
                         <i class="fas fa-optional mr-2"></i>Opsiyonel Özellikler
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Screen Size -->
-                        <div>
-                            <label for="screen_id" class="block text-sm font-medium text-gray-700 mb-2">
-                                <i class="fas fa-mobile-alt mr-2"></i>Ekran Boyutu
-                            </label>
-                            <select id="screen_id" 
-                                    name="screen_id" 
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('screen_id') border-red-500 @enderror">
-                                <option value="">Ekran Boyutu Seçiniz</option>
-                                @foreach($screens as $screen)
-                                    <option value="{{ $screen->id }}" {{ old('screen_id') == $screen->id ? 'selected' : '' }}>
-                                        {{ $screen->name }} ({{ $screen->resolution }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('screen_id')
-                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <!-- Camera -->
-                        <div>
-                            <label for="camera_id" class="block text-sm font-medium text-gray-700 mb-2">
-                                <i class="fas fa-camera mr-2"></i>Kamera
-                            </label>
-                            <select id="camera_id" 
-                                    name="camera_id" 
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('camera_id') border-red-500 @enderror">
-                                <option value="">Kamera Seçiniz</option>
-                                @foreach($cameras as $camera)
-                                    <option value="{{ $camera->id }}" {{ old('camera_id') == $camera->id ? 'selected' : '' }}>
-                                        {{ $camera->name }} - {{ $camera->specification }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('camera_id')
-                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
+                        <!-- No optional features for now -->
                     </div>
                 </div>
             </div>

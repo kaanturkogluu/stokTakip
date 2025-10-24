@@ -109,37 +109,6 @@
                                 </div>
                                 @endif
                                 
-                                <!-- RAM - Zorunlu -->
-                                @if($phone->ram)
-                                <div class="flex justify-between py-2 border-b border-gray-200">
-                                    <span class="font-medium text-gray-600">RAM:</span>
-                                    <span class="text-gray-800">{{ $phone->ram->name }}</span>
-                                </div>
-                                @endif
-                                
-                                <!-- Ekran - Opsiyonel -->
-                                @if($phone->screen)
-                                <div class="flex justify-between py-2 border-b border-gray-200">
-                                    <span class="font-medium text-gray-600">Ekran:</span>
-                                    <span class="text-gray-800">{{ $phone->screen->name }}</span>
-                                </div>
-                                @endif
-                                
-                                <!-- Kamera - Opsiyonel -->
-                                @if($phone->camera)
-                                <div class="flex justify-between py-2 border-b border-gray-200">
-                                    <span class="font-medium text-gray-600">Kamera:</span>
-                                    <span class="text-gray-800">{{ $phone->camera->name }}</span>
-                                </div>
-                                @endif
-                                
-                                <!-- Batarya - Zorunlu -->
-                                @if($phone->battery)
-                                <div class="flex justify-between py-2 border-b border-gray-200">
-                                    <span class="font-medium text-gray-600">Batarya:</span>
-                                    <span class="text-gray-800">{{ $phone->battery->name }}</span>
-                                </div>
-                                @endif
                                 
                                 <!-- Durum - Zorunlu -->
                                 <div class="flex justify-between py-2 border-b border-gray-200">
@@ -164,7 +133,7 @@
 
                         <!-- Contact Buttons -->
                         <div class="space-y-4">
-                            <a href="https://wa.me/{{ str_replace(['+', ' ', '-'], '', App\Models\Setting::getValue('whatsapp_number')) }}?text={{ urlencode('Merhaba, ' . $phone->name . ($phone->ram ? ' (' . $phone->ram->name . ' RAM)' : '') . ($phone->storage ? ' ' . $phone->storage->name : '') . ' hakkında bilgi almak istiyorum.') }}" target="_blank" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-4 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                            <a href="https://wa.me/{{ str_replace(['+', ' ', '-'], '', App\Models\Setting::getValue('whatsapp_number')) }}?text={{ urlencode('Merhaba, ' . $phone->name . ($phone->storage ? ' ' . $phone->storage->name : '') . ' hakkında bilgi almak istiyorum.') }}" target="_blank" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-4 px-6 rounded-lg transition duration-300 flex items-center justify-center">
                                 <i class="fab fa-whatsapp text-xl mr-3"></i>
                                 WhatsApp ile İletişime Geç
                             </a>
@@ -225,9 +194,6 @@
                                     @endif
                                     @if($relatedPhone->storage)
                                     <p class="text-gray-600"><strong>Depolama:</strong> {{ $relatedPhone->storage->name }}</p>
-                                    @endif
-                                    @if($relatedPhone->ram)
-                                    <p class="text-gray-600"><strong>RAM:</strong> {{ $relatedPhone->ram->name }}</p>
                                     @endif
                                 </div>
                                 <div class="flex justify-center">

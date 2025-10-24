@@ -15,10 +15,6 @@ class Phone extends Model
         'phone_model_id',
         'color_id',
         'storage_id',
-        'ram_id',
-        'screen_id',
-        'camera_id',
-        'battery_id',
         'images',
         'is_featured',
         'is_sold',
@@ -57,26 +53,5 @@ class Phone extends Model
     public function storage()
     {
         return $this->belongsTo(Storage::class);
-    }
-
-
-    public function ram()
-    {
-        return $this->belongsTo(Ram::class);
-    }
-
-    public function screen()
-    {
-        return $this->belongsTo(Screen::class);
-    }
-
-    public function camera()
-    {
-        return $this->belongsTo(Camera::class);
-    }
-
-    public function battery()
-    {
-        return $this->belongsTo(Battery::class);
     }
 }

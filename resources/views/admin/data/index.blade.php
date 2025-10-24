@@ -70,61 +70,6 @@
         </a>
 
 
-        <!-- RAM Card -->
-        <a href="{{ route('admin.data.rams') }}" class="group bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 rounded-full bg-red-100 group-hover:bg-red-200 transition-colors duration-300">
-                        <i class="fas fa-microchip text-2xl text-red-600"></i>
-                    </div>
-                    <i class="fas fa-arrow-right text-gray-400 group-hover:text-red-600 transition-colors duration-300"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">RAM</h3>
-                <p class="text-gray-600 text-sm">RAM kapasitelerini yönetin</p>
-            </div>
-        </a>
-
-        <!-- Screen Card -->
-        <a href="{{ route('admin.data.screens') }}" class="group bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 rounded-full bg-teal-100 group-hover:bg-teal-200 transition-colors duration-300">
-                        <i class="fas fa-mobile-alt text-2xl text-teal-600"></i>
-                    </div>
-                    <i class="fas fa-arrow-right text-gray-400 group-hover:text-teal-600 transition-colors duration-300"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">Ekranlar</h3>
-                <p class="text-gray-600 text-sm">Ekran boyutlarını yönetin</p>
-            </div>
-        </a>
-
-        <!-- Camera Card -->
-        <a href="{{ route('admin.data.cameras') }}" class="group bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 rounded-full bg-pink-100 group-hover:bg-pink-200 transition-colors duration-300">
-                        <i class="fas fa-camera text-2xl text-pink-600"></i>
-                    </div>
-                    <i class="fas fa-arrow-right text-gray-400 group-hover:text-pink-600 transition-colors duration-300"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">Kameralar</h3>
-                <p class="text-gray-600 text-sm">Kamera özelliklerini yönetin</p>
-            </div>
-        </a>
-
-        <!-- Battery Card -->
-        <a href="{{ route('admin.data.batteries') }}" class="group bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 rounded-full bg-orange-100 group-hover:bg-orange-200 transition-colors duration-300">
-                        <i class="fas fa-battery-full text-2xl text-orange-600"></i>
-                    </div>
-                    <i class="fas fa-arrow-right text-gray-400 group-hover:text-orange-600 transition-colors duration-300"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">Bataryalar</h3>
-                <p class="text-gray-600 text-sm">Batarya kapasitelerini yönetin</p>
-            </div>
-        </a>
     </div>
 
     <!-- Quick Stats -->

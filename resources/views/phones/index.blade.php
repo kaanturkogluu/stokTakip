@@ -57,9 +57,6 @@
                                     @if($phone->storage)
                                     <p class="text-gray-600"><strong>Depolama:</strong> {{ $phone->storage->name }}</p>
                                     @endif
-                                    @if($phone->ram)
-                                    <p class="text-gray-600"><strong>RAM:</strong> {{ $phone->ram->name }}</p>
-                                    @endif
                                 </div>
                                 <div class="flex justify-center">
                                     <a href="{{ route('phones.show', $phone) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-sm font-medium transition duration-300">
