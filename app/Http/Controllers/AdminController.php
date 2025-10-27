@@ -75,12 +75,14 @@ class AdminController extends Controller
             });
         }
 
-        // Satış durumu filtresi (default: unsold)
-        $saleStatus = $request->get('sale_status_filter', 'not_sold');
-        if ($saleStatus === 'sold') {
-            $query->where('is_sold', true);
-        } elseif ($saleStatus === 'not_sold') {
-            $query->where('is_sold', false);
+        // Satış durumu filtresi
+        if ($request->filled('sale_status_filter')) {
+            $saleStatus = $request->get('sale_status_filter');
+            if ($saleStatus === 'sold') {
+                $query->where('is_sold', true);
+            } elseif ($saleStatus === 'not_sold') {
+                $query->where('is_sold', false);
+            }
         }
 
         // Marka filtresi

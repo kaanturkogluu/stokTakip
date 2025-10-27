@@ -63,9 +63,9 @@
                 <select id="sort_by" 
                         name="sort_by" 
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="created_at" {{ request('sort_by', 'created_at') == 'created_at' ? 'selected' : '' }}>Kayıt Tarihi</option>
                     <option value="name" {{ request('sort_by') == 'name' ? 'selected' : '' }}>Ad</option>
                     <option value="debt" {{ request('sort_by') == 'debt' ? 'selected' : '' }}>Borç</option>
-                    <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>Kayıt Tarihi</option>
                 </select>
             </div>
             <div class="flex items-end space-x-2">
@@ -302,101 +302,6 @@ function deleteCustomer(customerId) {
     </div>
 </div>
 
-<!-- Payment Modal -->
-<div id="paymentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 lg:w-1/2 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between pb-4 border-b">
-                <h3 class="text-lg font-medium text-gray-900">
-                    <i class="fas fa-money-bill-wave mr-2"></i>
-                    Ödeme Al
-                </h3>
-                <button onclick="closePaymentModal()" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            
-            <!-- Modal Content -->
-            <div class="mt-4">
-                <form id="paymentForm">
-                    <div class="space-y-4">
-                        <!-- Customer Info -->
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <h4 class="font-medium text-blue-900 mb-2">Müşteri Bilgileri</h4>
-                            <p class="text-sm text-blue-800" id="paymentCustomerName"></p>
-                            <p class="text-sm text-blue-800" id="paymentCustomerDebt"></p>
-                        </div>
-                        
-                        <!-- Payment Amount -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Ödeme Tutarı</label>
-                            <input type="number" 
-                                   id="paymentAmount" 
-                                   name="amount" 
-                                   step="0.01" 
-                                   min="0.01"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                   placeholder="0.00"
-                                   required>
-                        </div>
-                        
-                        <!-- Payment Method -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Ödeme Yöntemi</label>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                                    <input type="radio" name="payment_method" value="cash" class="mr-3" checked>
-                                    <div class="flex items-center">
-                                        <i class="fas fa-money-bill-wave text-green-600 mr-2"></i>
-                                        <span class="text-sm font-medium">Nakit</span>
-                                    </div>
-                                </label>
-                                
-                                <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                                    <input type="radio" name="payment_method" value="iban" class="mr-3">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-university text-blue-600 mr-2"></i>
-                                        <span class="text-sm font-medium">IBAN</span>
-                                    </div>
-                                </label>
-                                
-                                <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                                    <input type="radio" name="payment_method" value="credit_card" class="mr-3">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-credit-card text-purple-600 mr-2"></i>
-                                        <span class="text-sm font-medium">Kredi Kartı</span>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <!-- Payment Notes -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Notlar</label>
-                            <textarea name="notes" 
-                                      rows="3" 
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      placeholder="Ödeme ile ilgili notlar..."></textarea>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- Modal Footer -->
-            <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
-                <button onclick="closePaymentModal()" 
-                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition duration-200">
-                    İptal
-                </button>
-                <button onclick="processPayment()" 
-                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200">
-                    <i class="fas fa-check mr-2"></i>Ödemeyi Kaydet
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
 let currentCustomerId = null;
@@ -523,100 +428,11 @@ function closeDebtModal() {
 function openPaymentModal() {
     if (!currentCustomerId) return;
     
-    // Get customer info from current debts
-    const customer = currentCustomerDebts[0]?.customer || {};
-    
-    if (!customer.name || !customer.surname) {
-        Swal.fire({
-            title: 'Hata!',
-            text: 'Müşteri bilgileri yüklenemedi.',
-            icon: 'error',
-            confirmButtonText: 'Tamam'
-        });
-        return;
-    }
-    
-    document.getElementById('paymentCustomerName').textContent = `${customer.name} ${customer.surname}`;
-    document.getElementById('paymentCustomerDebt').textContent = `Toplam Borç: ${customer.formatted_total_debt || '0.00 ₺'}`;
-    
-    // Set max payment amount
-    document.getElementById('paymentAmount').max = customer.total_debt || 0;
-    
-    document.getElementById('paymentModal').classList.remove('hidden');
+    // Redirect to payment page instead of opening modal
+    window.location.href = `/admin/customers/${currentCustomerId}/payment`;
 }
 
-function closePaymentModal() {
-    document.getElementById('paymentModal').classList.add('hidden');
-    document.getElementById('paymentForm').reset();
-}
 
-function processPayment() {
-    const form = document.getElementById('paymentForm');
-    const formData = new FormData(form);
-    
-    const amount = parseFloat(formData.get('amount'));
-    const paymentMethod = formData.get('payment_method');
-    const notes = formData.get('notes');
-    
-    if (!amount || amount <= 0) {
-        alert('Lütfen geçerli bir ödeme tutarı girin.');
-        return;
-    }
-    
-    if (amount > currentCustomerDebts[0]?.customer?.total_debt) {
-        alert('Ödeme tutarı toplam borçtan fazla olamaz.');
-        return;
-    }
-    
-    // Process payment via AJAX
-    fetch(`/admin/customers/${currentCustomerId}/payment`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify({
-            amount: amount,
-            payment_method: paymentMethod,
-            notes: notes
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Close modals
-            closePaymentModal();
-            closeDebtModal();
-            
-            // Show success message
-            Swal.fire({
-                title: 'Başarılı!',
-                text: 'Ödeme başarıyla kaydedildi.',
-                icon: 'success',
-                confirmButtonText: 'Tamam'
-            }).then(() => {
-                // Reload page to update data
-                window.location.reload();
-            });
-        } else {
-            Swal.fire({
-                title: 'Hata!',
-                text: data.message || 'Ödeme kaydedilirken hata oluştu.',
-                icon: 'error',
-                confirmButtonText: 'Tamam'
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            title: 'Hata!',
-            text: 'Ödeme kaydedilirken hata oluştu.',
-            icon: 'error',
-            confirmButtonText: 'Tamam'
-        });
-    });
-}
 </script>
 
 @endsection

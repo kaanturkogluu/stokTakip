@@ -53,7 +53,7 @@
                         name="sale_status_filter" 
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     <option value="">Tümü</option>
-                    <option value="not_sold" {{ request('sale_status_filter', 'not_sold') == 'not_sold' ? 'selected' : '' }}>Satılmadı</option>
+                    <option value="not_sold" {{ request('sale_status_filter') == 'not_sold' ? 'selected' : '' }}>Satılmadı</option>
                     <option value="sold" {{ request('sale_status_filter') == 'sold' ? 'selected' : '' }}>Satıldı</option>
                 </select>
             </div>
@@ -82,7 +82,7 @@
                         class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
                     <i class="fas fa-search mr-2"></i>Ara
                 </button>
-                <a href="{{ route('admin.phones.index', ['sale_status_filter' => 'not_sold']) }}" 
+                <a href="{{ route('admin.phones.index') }}" 
                    class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition duration-200">
                     <i class="fas fa-times mr-2"></i>Temizle
                 </a>

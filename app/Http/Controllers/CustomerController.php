@@ -41,16 +41,17 @@ class CustomerController extends Controller
         }
 
         // Sorting
-        $sortBy = $request->get('sort_by', 'name');
+        $sortBy = $request->get('sort_by', 'created_at');
         switch ($sortBy) {
             case 'debt':
                 $query->orderByRaw('(SELECT SUM(remaining_debt) FROM customer_records WHERE customer_records.customer_id = customers.id) DESC');
                 break;
-            case 'created_at':
-                $query->orderBy('created_at', 'desc');
-                break;
-            default:
+            case 'name':
                 $query->orderBy('name');
+                break;
+            case 'created_at':
+            default:
+                $query->orderBy('created_at', 'desc');
                 break;
         }
 
@@ -216,7 +217,10 @@ class CustomerController extends Controller
     public function processPayment(Request $request, Customer $customer)
     {
         if (!session('admin_logged_in')) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+            }
+            return redirect()->route('admin.login');
         }
 
         $request->validate([
@@ -231,10 +235,13 @@ class CustomerController extends Controller
 
         // Check if payment amount is valid
         if ($amount > $customer->total_debt) {
-            return response()->json([
-                'success' => false, 
-                'message' => 'Ödeme tutarı toplam borçtan fazla olamaz.'
-            ], 400);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Ödeme tutarı toplam borçtan fazla olamaz.'
+                ], 400);
+            }
+            return back()->withErrors(['amount' => 'Ödeme tutarı toplam borçtan fazla olamaz.']);
         }
 
         // Get payment method text
@@ -279,10 +286,17 @@ class CustomerController extends Controller
         // Update customer total debt
         $customer->update(['debt' => $customer->total_debt]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ödeme başarıyla kaydedildi.',
-            'payment' => $payment
-        ]);
+        // Prepare response
+        $message = "Ödeme başarıyla kaydedildi. Tutar: " . number_format($amount, 2) . " ₺ - " . $paymentMethodText;
+        
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'payment' => $payment
+            ]);
+        }
+        
+        return redirect()->route('admin.customers.show', $customer)->with('success', $message);
     }
 }
