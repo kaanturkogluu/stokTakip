@@ -703,6 +703,9 @@ class AdminController extends Controller
             // Debug: Log the incoming request data
             Log::info('Sale request data:', $request->all());
             
+            // Start database transaction
+            \DB::beginTransaction();
+            
             $validationRules = [
                 'serial_number' => 'required|string',
                 'sale_price' => 'required|numeric|min:0',
@@ -824,6 +827,16 @@ class AdminController extends Controller
         }
         
         $phone->update($updateData);
+        $phone->refresh(); // Ensure we have the latest data
+        
+        // Debug: Log the phone update
+        Log::info('Phone updated after sale:', [
+            'phone_id' => $phone->id,
+            'phone_name' => $phone->name,
+            'is_sold' => $phone->is_sold,
+            'sale_price' => $phone->sale_price,
+            'update_data' => $updateData
+        ]);
 
         // Prepare success message
         $message = "{$phone->name} cihazı başarıyla satıldı. Satış fiyatı: " . number_format($salePrice, 2) . " ₺";
@@ -835,12 +848,17 @@ class AdminController extends Controller
             }
         }
 
+        // Commit transaction
+        \DB::commit();
+
         return response()->json([
             'success' => true,
             'message' => $message
         ]);
         
         } catch (\Exception $e) {
+            // Rollback transaction on error
+            \DB::rollback();
             Log::error('Sale error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,

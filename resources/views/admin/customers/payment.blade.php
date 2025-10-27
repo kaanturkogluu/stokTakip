@@ -88,9 +88,8 @@
                             required>
                         <option value="">Ödeme yöntemi seçin</option>
                         <option value="cash" {{ old('payment_method') == 'cash' ? 'selected' : '' }}>Nakit</option>
-                        <option value="bank_transfer" {{ old('payment_method') == 'bank_transfer' ? 'selected' : '' }}>Banka Havalesi</option>
-                        <option value="card" {{ old('payment_method') == 'card' ? 'selected' : '' }}>Kart</option>
-                        <option value="other" {{ old('payment_method') == 'other' ? 'selected' : '' }}>Diğer</option>
+                        <option value="iban" {{ old('payment_method') == 'iban' ? 'selected' : '' }}>IBAN</option>
+                        <option value="credit_card" {{ old('payment_method') == 'credit_card' ? 'selected' : '' }}>Kredi Kartı</option>
                     </select>
                     @error('payment_method')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>

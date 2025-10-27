@@ -750,7 +750,22 @@ function executeSale(serialNumber, salePrice, saleNote, addToCustomers, customer
                 confirmButtonText: 'Tamam'
             }).then(() => {
                 closeSaleModal();
-                location.reload(); // Sayfayı yenile
+                // Show options to user
+                Swal.fire({
+                    title: 'Satış Tamamlandı!',
+                    text: 'Telefon başarıyla satıldı. Satılan telefonları görmek için "Satıldı" filtresini kullanabilirsiniz.',
+                    icon: 'success',
+                    showCancelButton: true,
+                    confirmButtonText: 'Satılan Telefonları Gör',
+                    cancelButtonText: 'Burada Kal',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '/admin/phones?sale_status_filter=sold';
+                    } else {
+                        location.reload();
+                    }
+                });
             });
         } else {
             Swal.fire({

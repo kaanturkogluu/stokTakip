@@ -88,6 +88,6 @@ Route::put('/admin/customers/{customer}', [CustomerController::class, 'update'])
 Route::delete('/admin/customers/{customer}', [CustomerController::class, 'destroy'])->name('admin.customers.destroy');
 
 // Admin Customer Payment Routes
-        // Customer debt routes
-        Route::get('/admin/customers/{customer}/debts', [CustomerController::class, 'getDebts'])->name('admin.customers.debts');
-        Route::post('/admin/customers/{customer}/payment', [CustomerController::class, 'processPayment'])->name('admin.customers.payment.process');
+Route::get('/admin/customers/{customer}/payment', [CustomerController::class, 'payment'])->name('admin.customers.payment');
+Route::get('/admin/customers/{customer}/debts', [CustomerController::class, 'getDebts'])->name('admin.customers.debts');
+Route::post('/admin/customers/{customer}/payment', [CustomerController::class, 'processPayment'])->name('admin.customers.payment.process');

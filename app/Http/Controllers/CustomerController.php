@@ -137,6 +137,15 @@ class CustomerController extends Controller
     }
 
     // Payment methods
+    public function payment(Customer $customer)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.customers.payment', compact('customer'));
+    }
+
     public function getDebts(Customer $customer)
     {
         if (!session('admin_logged_in')) {
@@ -145,10 +154,62 @@ class CustomerController extends Controller
 
         $customer->load(['records.phone.brand', 'records.phone.phoneModel', 'records.phone.storage']);
         
+        // Format customer data for JSON response
+        $customerData = [
+            'id' => $customer->id,
+            'name' => $customer->name,
+            'surname' => $customer->surname,
+            'phone' => $customer->phone,
+            'debt' => $customer->debt,
+            'total_debt' => $customer->total_debt,
+            'formatted_total_debt' => $customer->formatted_total_debt,
+            'notes' => $customer->notes,
+            'created_at' => $customer->created_at,
+            'updated_at' => $customer->updated_at
+        ];
+        
+        // Format debts data for JSON response
+        $debtsData = $customer->records->map(function($record) {
+            return [
+                'id' => $record->id,
+                'customer_id' => $record->customer_id,
+                'phone_id' => $record->phone_id,
+                'sale_price' => $record->sale_price,
+                'paid_amount' => $record->paid_amount,
+                'remaining_debt' => $record->remaining_debt,
+                'payment_status' => $record->payment_status,
+                'notes' => $record->notes,
+                'created_at' => $record->created_at,
+                'updated_at' => $record->updated_at,
+                'formatted_sale_price' => $record->formatted_sale_price,
+                'formatted_paid_amount' => $record->formatted_paid_amount,
+                'formatted_remaining_debt' => $record->formatted_remaining_debt,
+                'payment_status_text' => $record->payment_status_text,
+                'payment_status_color' => $record->payment_status_color,
+                'device_info' => $record->device_info,
+                'phone' => $record->phone ? [
+                    'id' => $record->phone->id,
+                    'name' => $record->phone->name,
+                    'brand' => $record->phone->brand ? [
+                        'id' => $record->phone->brand->id,
+                        'name' => $record->phone->brand->name
+                    ] : null,
+                    'phoneModel' => $record->phone->phoneModel ? [
+                        'id' => $record->phone->phoneModel->id,
+                        'name' => $record->phone->phoneModel->name
+                    ] : null,
+                    'storage' => $record->phone->storage ? [
+                        'id' => $record->phone->storage->id,
+                        'name' => $record->phone->storage->name
+                    ] : null
+                ] : null
+            ];
+        });
+        
         return response()->json([
             'success' => true,
-            'customer' => $customer,
-            'debts' => $customer->records
+            'customer' => $customerData,
+            'debts' => $debtsData
         ]);
     }
 

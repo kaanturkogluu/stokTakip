@@ -438,15 +438,22 @@ function showCustomerDebts(customerId, customerName) {
 function displayCustomerDebts(debts, customer) {
     let html = '';
     
-    if (debts.length === 0) {
+    // Ensure we have valid data
+    if (!customer) {
+        html = '<div class="text-center py-8 text-red-600"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><p>Müşteri bilgileri yüklenemedi</p></div>';
+        document.getElementById('debtContent').innerHTML = html;
+        return;
+    }
+    
+    if (!debts || debts.length === 0) {
         html = '<div class="text-center py-8 text-gray-500"><i class="fas fa-check-circle text-4xl mb-4"></i><p>Bu müşterinin borcu bulunmuyor</p></div>';
     } else {
         html = `
             <div class="mb-4 p-4 bg-gray-50 rounded-lg">
                 <h4 class="font-medium text-gray-900 mb-2">Müşteri Bilgileri</h4>
-                <p class="text-sm text-gray-600">Ad Soyad: ${customer.name} ${customer.surname}</p>
+                <p class="text-sm text-gray-600">Ad Soyad: ${customer.name || ''} ${customer.surname || ''}</p>
                 <p class="text-sm text-gray-600">Telefon: ${customer.phone || 'Belirtilmemiş'}</p>
-                <p class="text-sm font-medium text-red-600">Toplam Borç: ${customer.formatted_total_debt}</p>
+                <p class="text-sm font-medium text-red-600">Toplam Borç: ${customer.formatted_total_debt || '0.00 ₺'}</p>
             </div>
             
             <div class="space-y-3">
@@ -459,12 +466,15 @@ function displayCustomerDebts(debts, customer) {
             const statusText = debt.payment_status === 'paid' ? 'Ödendi' : 
                               debt.payment_status === 'partial' ? 'Kısmi Ödeme' : 'Beklemede';
             
+            // Format date
+            const createdDate = debt.created_at ? new Date(debt.created_at).toLocaleDateString('tr-TR') : 'Tarih belirtilmemiş';
+            
             html += `
                 <div class="border border-gray-200 rounded-lg p-4">
                     <div class="flex justify-between items-start mb-2">
                         <div>
-                            <h5 class="font-medium text-gray-900">${debt.device_info}</h5>
-                            <p class="text-sm text-gray-500">${debt.created_at}</p>
+                            <h5 class="font-medium text-gray-900">${debt.device_info || 'Cihaz bilgisi yok'}</h5>
+                            <p class="text-sm text-gray-500">${createdDate}</p>
                         </div>
                         <span class="px-2 py-1 text-xs font-medium rounded-full ${statusColor}">
                             ${statusText}
@@ -474,15 +484,15 @@ function displayCustomerDebts(debts, customer) {
                     <div class="grid grid-cols-3 gap-4 text-sm">
                         <div>
                             <p class="text-gray-500">Satış Fiyatı</p>
-                            <p class="font-medium">${debt.formatted_sale_price}</p>
+                            <p class="font-medium">${debt.formatted_sale_price || '0.00 ₺'}</p>
                         </div>
                         <div>
                             <p class="text-gray-500">Ödenen</p>
-                            <p class="font-medium text-green-600">${debt.formatted_paid_amount}</p>
+                            <p class="font-medium text-green-600">${debt.formatted_paid_amount || '0.00 ₺'}</p>
                         </div>
                         <div>
                             <p class="text-gray-500">Kalan Borç</p>
-                            <p class="font-medium text-red-600">${debt.formatted_remaining_debt}</p>
+                            <p class="font-medium text-red-600">${debt.formatted_remaining_debt || '0.00 ₺'}</p>
                         </div>
                     </div>
                     
@@ -497,7 +507,7 @@ function displayCustomerDebts(debts, customer) {
     document.getElementById('debtContent').innerHTML = html;
     
     // Show payment button if there are debts
-    if (debts.length > 0 && customer.total_debt > 0) {
+    if (debts && debts.length > 0 && customer.total_debt > 0) {
         document.getElementById('paymentButton').classList.remove('hidden');
     } else {
         document.getElementById('paymentButton').classList.add('hidden');
@@ -516,11 +526,21 @@ function openPaymentModal() {
     // Get customer info from current debts
     const customer = currentCustomerDebts[0]?.customer || {};
     
+    if (!customer.name || !customer.surname) {
+        Swal.fire({
+            title: 'Hata!',
+            text: 'Müşteri bilgileri yüklenemedi.',
+            icon: 'error',
+            confirmButtonText: 'Tamam'
+        });
+        return;
+    }
+    
     document.getElementById('paymentCustomerName').textContent = `${customer.name} ${customer.surname}`;
-    document.getElementById('paymentCustomerDebt').textContent = `Toplam Borç: ${customer.formatted_total_debt}`;
+    document.getElementById('paymentCustomerDebt').textContent = `Toplam Borç: ${customer.formatted_total_debt || '0.00 ₺'}`;
     
     // Set max payment amount
-    document.getElementById('paymentAmount').max = customer.total_debt;
+    document.getElementById('paymentAmount').max = customer.total_debt || 0;
     
     document.getElementById('paymentModal').classList.remove('hidden');
 }
