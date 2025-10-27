@@ -4,17 +4,57 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\CustomerPayment;
+use App\Models\CustomerRecord;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         if (!session('admin_logged_in')) {
             return redirect()->route('admin.login');
         }
 
-        $customers = Customer::orderBy('name')->paginate(15);
+        $query = Customer::with('records');
+
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('surname', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Debt filter
+        if ($request->filled('debt_filter')) {
+            if ($request->debt_filter === 'has_debt') {
+                $query->whereHas('records', function($q) {
+                    $q->where('remaining_debt', '>', 0);
+                });
+            } elseif ($request->debt_filter === 'no_debt') {
+                $query->whereDoesntHave('records', function($q) {
+                    $q->where('remaining_debt', '>', 0);
+                });
+            }
+        }
+
+        // Sorting
+        $sortBy = $request->get('sort_by', 'name');
+        switch ($sortBy) {
+            case 'debt':
+                $query->orderByRaw('(SELECT SUM(remaining_debt) FROM customer_records WHERE customer_records.customer_id = customers.id) DESC');
+                break;
+            case 'created_at':
+                $query->orderBy('created_at', 'desc');
+                break;
+            default:
+                $query->orderBy('name');
+                break;
+        }
+
+        $customers = $query->paginate(15);
         
         return view('admin.customers.index', compact('customers'));
     }
@@ -53,7 +93,7 @@ class CustomerController extends Controller
             return redirect()->route('admin.login');
         }
 
-        $customer->load('payments');
+        $customer->load(['payments', 'records.phone.brand', 'records.phone.phoneModel', 'records.phone.storage']);
         return view('admin.customers.show', compact('customer'));
     }
 
@@ -97,45 +137,91 @@ class CustomerController extends Controller
     }
 
     // Payment methods
-    public function paymentForm(Customer $customer)
+    public function getDebts(Customer $customer)
     {
         if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
         }
 
-        return view('admin.customers.payment', compact('customer'));
+        $customer->load(['records.phone.brand', 'records.phone.phoneModel', 'records.phone.storage']);
+        
+        return response()->json([
+            'success' => true,
+            'customer' => $customer,
+            'debts' => $customer->records
+        ]);
     }
 
     public function processPayment(Request $request, Customer $customer)
     {
         if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
         }
 
         $request->validate([
             'amount' => 'required|numeric|min:0.01',
-            'payment_method' => 'required|in:cash,bank_transfer,card,other',
+            'payment_method' => 'required|in:cash,iban,credit_card',
             'notes' => 'nullable|string|max:1000'
         ]);
 
-        $paymentAmount = $request->amount;
-        $previousDebt = $customer->debt;
-        $remainingDebt = max(0, $previousDebt - $paymentAmount);
+        $amount = $request->amount;
+        $paymentMethod = $request->payment_method;
+        $notes = $request->notes;
+
+        // Check if payment amount is valid
+        if ($amount > $customer->total_debt) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Ödeme tutarı toplam borçtan fazla olamaz.'
+            ], 400);
+        }
+
+        // Get payment method text
+        $paymentMethodText = [
+            'cash' => 'Nakit',
+            'iban' => 'IBAN',
+            'credit_card' => 'Kredi Kartı'
+        ][$paymentMethod] ?? 'Bilinmiyor';
 
         // Create payment record
-        CustomerPayment::create([
+        $payment = CustomerPayment::create([
             'customer_id' => $customer->id,
-            'amount' => $paymentAmount,
-            'previous_debt' => $previousDebt,
-            'remaining_debt' => $remainingDebt,
-            'payment_method' => $request->payment_method,
-            'notes' => $request->notes
+            'amount' => $amount,
+            'previous_debt' => $customer->total_debt,
+            'remaining_debt' => $customer->total_debt - $amount,
+            'payment_method' => $paymentMethod,
+            'notes' => $notes ?: "Ödeme alındı - {$paymentMethodText}"
         ]);
 
-        // Update customer debt
-        $customer->update(['debt' => $remainingDebt]);
+        // Update customer records with payment
+        $remainingAmount = $amount;
+        $customerRecords = $customer->records()->where('remaining_debt', '>', 0)->orderBy('created_at')->get();
+        
+        foreach ($customerRecords as $record) {
+            if ($remainingAmount <= 0) break;
+            
+            $paymentToRecord = min($remainingAmount, $record->remaining_debt);
+            $record->paid_amount += $paymentToRecord;
+            $record->remaining_debt -= $paymentToRecord;
+            
+            // Update payment status
+            if ($record->remaining_debt <= 0) {
+                $record->payment_status = 'paid';
+            } else {
+                $record->payment_status = 'partial';
+            }
+            
+            $record->save();
+            $remainingAmount -= $paymentToRecord;
+        }
 
-        return redirect()->route('admin.customers.show', $customer)->with('success', 
-            'Ödeme başarıyla kaydedildi! Ödenen: ' . number_format($paymentAmount, 2) . ' ₺');
+        // Update customer total debt
+        $customer->update(['debt' => $customer->total_debt]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ödeme başarıyla kaydedildi.',
+            'payment' => $payment
+        ]);
     }
 }

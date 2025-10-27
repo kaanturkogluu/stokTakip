@@ -128,7 +128,71 @@
                 </div>
             @endif
 
-            <!-- Payment History -->
+            <!-- Customer Records -->
+    <div class="bg-white rounded-lg shadow overflow-hidden mt-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">
+                <i class="fas fa-shopping-cart mr-2"></i>
+                Satış Kayıtları
+            </h3>
+        </div>
+        <div class="overflow-x-auto">
+            @if($customer->records->count() > 0)
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cihaz</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satış Fiyatı</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ödenen</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kalan Borç</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarih</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach($customer->records as $record)
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ $record->device_info }}
+                                    </div>
+                                    @if($record->phone)
+                                        <div class="text-sm text-gray-500">
+                                            {{ $record->phone->brand->name ?? '' }} {{ $record->phone->phoneModel->name ?? '' }}
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ $record->formatted_sale_price }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ $record->formatted_paid_amount }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ $record->formatted_remaining_debt }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full {{ $record->payment_status_color }}">
+                                        {{ $record->payment_status_text }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ $record->created_at->format('d.m.Y H:i') }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @else
+                <div class="px-6 py-8 text-center text-gray-500">
+                    <i class="fas fa-shopping-cart text-4xl mb-4"></i>
+                    <p>Henüz satış kaydı bulunmuyor.</p>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <!-- Payment History -->
             @if($customer->payments->count() > 0)
                 <div class="mt-6">
                     <h4 class="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">Ödeme Geçmişi</h4>

@@ -54,4 +54,9 @@ class Phone extends Model
     {
         return $this->belongsTo(Storage::class);
     }
+
+    public function customerRecords()
+    {
+        return $this->hasMany(CustomerRecord::class);
+    }
 }

@@ -14,6 +14,7 @@ use App\Models\Color;
 use App\Models\Storage as StorageModel;
 use App\Models\Customer;
 use App\Models\CustomerPayment;
+use App\Models\CustomerRecord;
 
 class AdminController extends Controller
 {
@@ -74,14 +75,17 @@ class AdminController extends Controller
             });
         }
 
-        // Satış durumu filtresi
-        if ($request->filled('sale_status_filter')) {
-            $saleStatus = $request->get('sale_status_filter');
-            if ($saleStatus === 'sold') {
-                $query->where('is_sold', true);
-            } elseif ($saleStatus === 'not_sold') {
-                $query->where('is_sold', false);
-            }
+        // Satış durumu filtresi (default: unsold)
+        $saleStatus = $request->get('sale_status_filter', 'not_sold');
+        if ($saleStatus === 'sold') {
+            $query->where('is_sold', true);
+        } elseif ($saleStatus === 'not_sold') {
+            $query->where('is_sold', false);
+        }
+
+        // Marka filtresi
+        if ($request->filled('brand_filter')) {
+            $query->where('brand_id', $request->get('brand_filter'));
         }
 
         // Durum filtresi
@@ -94,7 +98,7 @@ class AdminController extends Controller
             $query->where('is_featured', $request->get('featured_filter'));
         }
 
-        $phones = $query->orderBy('created_at', 'desc')->paginate(25);
+        $phones = $query->orderBy('created_at', 'desc')->paginate(25)->appends(request()->query());
 
         return view('admin.phones.index', compact('phones'));
     }
@@ -704,11 +708,18 @@ class AdminController extends Controller
                 'sale_price' => 'required|numeric|min:0',
                 'sale_note' => 'nullable|string|max:1000',
                 'add_to_customers' => 'nullable|boolean',
-                'customer_name' => 'required_if:add_to_customers,true|string|max:255',
-                'customer_surname' => 'required_if:add_to_customers,true|string|max:255',
+                'customer_id' => 'nullable|exists:customers,id',
+                'customer_name' => 'nullable|string|max:255',
+                'customer_surname' => 'nullable|string|max:255',
                 'customer_phone' => 'nullable|string|max:20',
                 'payment_option' => 'required|in:full,partial'
             ];
+            
+            // Add conditional validation for customer fields
+            if ($request->add_to_customers && !$request->customer_id) {
+                $validationRules['customer_name'] = 'required|string|max:255';
+                $validationRules['customer_surname'] = 'required|string|max:255';
+            }
             
             // Only validate partial_amount if payment_option is partial
             if ($request->payment_option === 'partial') {
@@ -733,21 +744,33 @@ class AdminController extends Controller
             ]);
         }
 
-        // Create customer if requested
+        // Handle customer selection/creation
         $customer = null;
         $addToCustomers = filter_var($request->add_to_customers, FILTER_VALIDATE_BOOLEAN);
+        
         if ($addToCustomers) {
-            // Get device information
-            $deviceInfo = $this->getDeviceInfo($phone);
-            $customerNotes = "Satış Sırasında Eklendi - " . $deviceInfo;
-            
-            $customer = Customer::create([
-                'name' => $request->customer_name,
-                'surname' => $request->customer_surname,
-                'phone' => $request->customer_phone,
-                'debt' => 0, // Will be updated based on payment option
-                'notes' => $customerNotes
-            ]);
+            // Check if existing customer is selected
+            if ($request->customer_id) {
+                $customer = Customer::find($request->customer_id);
+            } else {
+                // Check if customer already exists by name and surname
+                $existingCustomer = Customer::where('name', $request->customer_name)
+                    ->where('surname', $request->customer_surname)
+                    ->first();
+                
+                if ($existingCustomer) {
+                    $customer = $existingCustomer;
+                } else {
+                    // Create new customer
+                    $customer = Customer::create([
+                        'name' => $request->customer_name,
+                        'surname' => $request->customer_surname,
+                        'phone' => $request->customer_phone,
+                        'debt' => 0, // Will be calculated from records
+                        'notes' => 'Müşteri kaydı'
+                    ]);
+                }
+            }
         }
 
         // Calculate payment and debt
@@ -755,21 +778,37 @@ class AdminController extends Controller
         $paymentAmount = $request->payment_option === 'partial' ? $request->partial_amount : $salePrice;
         $remainingDebt = $salePrice - $paymentAmount;
 
-        // Update customer debt if partial payment
-        if ($customer && $remainingDebt > 0) {
-            $customer->update(['debt' => $remainingDebt]);
+        // Create customer record if customer is selected
+        if ($customer) {
+            $paymentStatus = 'paid';
+            if ($remainingDebt > 0) {
+                $paymentStatus = $paymentAmount > 0 ? 'partial' : 'pending';
+            }
             
-            // Create payment record for partial payment
-            $deviceInfo = $this->getDeviceInfo($phone);
-            
-            CustomerPayment::create([
+            CustomerRecord::create([
                 'customer_id' => $customer->id,
-                'amount' => $paymentAmount,
-                'previous_debt' => 0,
+                'phone_id' => $phone->id,
+                'sale_price' => $salePrice,
+                'paid_amount' => $paymentAmount,
                 'remaining_debt' => $remainingDebt,
-                'payment_method' => 'cash',
-                'notes' => 'Telefon satışı - Kısmi ödeme - ' . $deviceInfo
+                'payment_status' => $paymentStatus,
+                'notes' => $request->sale_note
             ]);
+            
+            // Update customer total debt
+            $customer->update(['debt' => $customer->total_debt]);
+            
+            // Create payment record if there was a payment
+            if ($paymentAmount > 0) {
+                CustomerPayment::create([
+                    'customer_id' => $customer->id,
+                    'amount' => $paymentAmount,
+                    'previous_debt' => $salePrice,
+                    'remaining_debt' => $remainingDebt,
+                    'payment_method' => 'cash',
+                    'notes' => 'Telefon satışı - ' . $this->getDeviceInfo($phone)
+                ]);
+            }
         }
 
         // Update phone as sold

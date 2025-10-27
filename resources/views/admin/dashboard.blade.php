@@ -196,6 +196,25 @@
                     <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
                         <h4 class="text-sm font-medium text-blue-900 mb-3">Müşteri Bilgileri</h4>
                         
+                        <!-- Customer Selection -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Müşteri Seç</label>
+                            <select id="customerSelect" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Yeni Müşteri Ekle</option>
+                                @foreach(\App\Models\Customer::orderBy('name')->get() as $customer)
+                                    <option value="{{ $customer->id }}" 
+                                            data-name="{{ $customer->name }}" 
+                                            data-surname="{{ $customer->surname }}" 
+                                            data-phone="{{ $customer->phone }}">
+                                        {{ $customer->full_name }} 
+                                        @if($customer->phone) - {{ $customer->phone }} @endif
+                                        @if($customer->total_debt > 0) (Borç: {{ $customer->formatted_total_debt }}) @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
                         <!-- Add to Customer List Checkbox -->
                         <div class="mb-4">
                             <label class="flex items-center">
@@ -443,11 +462,52 @@ function displayPhoneInfo(phone) {
 
     // Add event listeners for customer form interactions (only once)
     if (!window.customerEventListenersAdded) {
+        const customerSelect = document.getElementById('customerSelect');
         const addToCustomersCheckbox = document.getElementById('addToCustomers');
         const customerForm = document.getElementById('customerForm');
         const paymentOptions = document.querySelectorAll('input[name="payment_option"]');
         const partialPaymentSection = document.getElementById('partialPaymentSection');
         const partialAmountInput = document.getElementById('partialAmount');
+
+        // Customer selection change
+        if (customerSelect) {
+            customerSelect.addEventListener('change', function() {
+                if (this.value) {
+                    // Existing customer selected
+                    const option = this.options[this.selectedIndex];
+                    
+                    // Disable form inputs and check add to customers
+                    addToCustomersCheckbox.checked = true;
+                    addToCustomersCheckbox.disabled = true;
+                    customerForm.style.display = 'block';
+                    
+                    // Set values
+                    document.getElementById('customerName').value = option.dataset.name;
+                    document.getElementById('customerSurname').value = option.dataset.surname;
+                    document.getElementById('customerPhone').value = option.dataset.phone || '';
+                    
+                    // Disable form inputs
+                    document.getElementById('customerName').disabled = true;
+                    document.getElementById('customerSurname').disabled = true;
+                    document.getElementById('customerPhone').disabled = true;
+                } else {
+                    // New customer option selected
+                    addToCustomersCheckbox.disabled = false;
+                    addToCustomersCheckbox.checked = false;
+                    customerForm.style.display = 'none';
+                    
+                    // Clear form
+                    document.getElementById('customerName').value = '';
+                    document.getElementById('customerSurname').value = '';
+                    document.getElementById('customerPhone').value = '';
+                    
+                    // Enable form inputs
+                    document.getElementById('customerName').disabled = false;
+                    document.getElementById('customerSurname').disabled = false;
+                    document.getElementById('customerPhone').disabled = false;
+                }
+            });
+        }
 
         // Show/hide customer form when checkbox is toggled
         if (addToCustomersCheckbox) {
@@ -456,6 +516,10 @@ function displayPhoneInfo(phone) {
                     customerForm.style.display = 'block';
                 } else {
                     customerForm.style.display = 'none';
+                    // Clear customer selection
+                    if (customerSelect) {
+                        customerSelect.value = '';
+                    }
                 }
             });
         }
@@ -523,9 +587,30 @@ function processSale(event) {
     
     // Customer data
     const addToCustomers = document.getElementById('addToCustomers').checked;
-    const customerName = formData.get('customer_name');
-    const customerSurname = formData.get('customer_surname');
-    const customerPhone = formData.get('customer_phone');
+    const customerId = document.getElementById('customerSelect').value;
+    
+    // Temporarily enable disabled fields to get values
+    const customerNameField = document.getElementById('customerName');
+    const customerSurnameField = document.getElementById('customerSurname');
+    const customerPhoneField = document.getElementById('customerPhone');
+    
+    const customerNameDisabled = customerNameField.disabled;
+    const customerSurnameDisabled = customerSurnameField.disabled;
+    const customerPhoneDisabled = customerPhoneField.disabled;
+    
+    customerNameField.disabled = false;
+    customerSurnameField.disabled = false;
+    customerPhoneField.disabled = false;
+    
+    const customerName = customerNameField.value;
+    const customerSurname = customerSurnameField.value;
+    const customerPhone = customerPhoneField.value;
+    
+    // Restore disabled state
+    customerNameField.disabled = customerNameDisabled;
+    customerSurnameField.disabled = customerSurnameDisabled;
+    customerPhoneField.disabled = customerPhoneDisabled;
+    
     const paymentOption = formData.get('payment_option');
     const partialAmount = parseFloat(formData.get('partial_amount')) || 0;
     
@@ -598,16 +683,16 @@ function processSale(event) {
             cancelButtonText: 'İptal'
         }).then((result) => {
             if (result.isConfirmed) {
-                executeSale(serialNumber, salePrice, saleNote, addToCustomers, customerName, customerSurname, customerPhone, paymentOption, partialAmount);
+                executeSale(serialNumber, salePrice, saleNote, addToCustomers, customerId, customerName, customerSurname, customerPhone, paymentOption, partialAmount);
             }
         });
     } else {
         // Sale price is higher or equal, proceed directly
-        executeSale(serialNumber, salePrice, saleNote, addToCustomers, customerName, customerSurname, customerPhone, paymentOption, partialAmount);
+        executeSale(serialNumber, salePrice, saleNote, addToCustomers, customerId, customerName, customerSurname, customerPhone, paymentOption, partialAmount);
     }
 }
 
-function executeSale(serialNumber, salePrice, saleNote, addToCustomers, customerName, customerSurname, customerPhone, paymentOption, partialAmount) {
+function executeSale(serialNumber, salePrice, saleNote, addToCustomers, customerId, customerName, customerSurname, customerPhone, paymentOption, partialAmount) {
     console.log('executeSale called with:', { 
         serialNumber, salePrice, saleNote, addToCustomers, customerName, customerSurname, customerPhone, paymentOption, partialAmount 
     }); // Debug log
@@ -636,6 +721,7 @@ function executeSale(serialNumber, salePrice, saleNote, addToCustomers, customer
             sale_price: salePrice,
             sale_note: saleNote,
             add_to_customers: addToCustomers,
+            customer_id: customerId,
             customer_name: customerName,
             customer_surname: customerSurname,
             customer_phone: customerPhone,

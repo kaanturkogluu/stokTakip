@@ -53,7 +53,7 @@
                         name="sale_status_filter" 
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     <option value="">Tümü</option>
-                    <option value="not_sold" {{ request('sale_status_filter') == 'not_sold' ? 'selected' : '' }}>Satılmadı</option>
+                    <option value="not_sold" {{ request('sale_status_filter', 'not_sold') == 'not_sold' ? 'selected' : '' }}>Satılmadı</option>
                     <option value="sold" {{ request('sale_status_filter') == 'sold' ? 'selected' : '' }}>Satıldı</option>
                 </select>
             </div>
@@ -82,12 +82,32 @@
                         class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
                     <i class="fas fa-search mr-2"></i>Ara
                 </button>
-                <a href="{{ route('admin.phones.index') }}" 
+                <a href="{{ route('admin.phones.index', ['sale_status_filter' => 'not_sold']) }}" 
                    class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition duration-200">
                     <i class="fas fa-times mr-2"></i>Temizle
                 </a>
             </div>
         </form>
+        
+        <!-- Brand Filter Buttons -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <h3 class="text-sm font-medium text-gray-700 mb-3">Marka Filtresi</h3>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.phones.index', array_merge(request()->query(), ['brand_filter' => ''])) }}" 
+                   class="px-3 py-2 text-sm font-medium rounded-lg border transition duration-200 {{ !request('brand_filter') ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
+                    <i class="fas fa-th mr-1"></i>Tümü
+                </a>
+                @foreach(\App\Models\Brand::orderBy('name')->get() as $brand)
+                    <a href="{{ route('admin.phones.index', array_merge(request()->query(), ['brand_filter' => $brand->id])) }}" 
+                       class="px-3 py-2 text-sm font-medium rounded-lg border transition duration-200 {{ request('brand_filter') == $brand->id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
+                        <i class="fas fa-mobile-alt mr-1"></i>{{ $brand->name }}
+                        <span class="ml-1 px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
+                            {{ $brand->phones()->where('is_sold', false)->count() }}
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
     </div>
 
     <!-- Phones Table -->

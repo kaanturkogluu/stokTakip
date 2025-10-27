@@ -35,4 +35,21 @@ class Customer extends Model
     {
         return $this->hasMany(CustomerPayment::class);
     }
+
+    public function records()
+    {
+        return $this->hasMany(CustomerRecord::class);
+    }
+
+    // Calculate total debt from records
+    public function getTotalDebtAttribute()
+    {
+        return $this->records()->sum('remaining_debt');
+    }
+
+    // Get formatted total debt
+    public function getFormattedTotalDebtAttribute()
+    {
+        return number_format($this->total_debt, 2) . ' ₺';
+    }
 }
