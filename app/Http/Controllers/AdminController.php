@@ -58,6 +58,84 @@ class AdminController extends Controller
         ));
     }
 
+    public function sales(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        // Get all sold phones with their customer records
+        $query = Phone::with(['brand', 'phoneModel', 'storage', 'customerRecords.customer'])
+            ->where('is_sold', true)
+            ->orderBy('sold_at', 'desc');
+
+        // Search functionality
+        if ($request->filled('search')) {
+            $searchTerm = $request->get('search');
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('name', 'LIKE', "%{$searchTerm}%")
+                  ->orWhere('stock_serial', 'LIKE', "%{$searchTerm}%")
+                  ->orWhereHas('customerRecords.customer', function($customerQuery) use ($searchTerm) {
+                      $customerQuery->where('name', 'LIKE', "%{$searchTerm}%")
+                                   ->orWhere('surname', 'LIKE', "%{$searchTerm}%");
+                  });
+            });
+        }
+
+        // Date filter
+        if ($request->filled('date_filter')) {
+            $dateFilter = $request->get('date_filter');
+            switch ($dateFilter) {
+                case 'today':
+                    $query->whereDate('sold_at', today());
+                    break;
+                case 'yesterday':
+                    $query->whereDate('sold_at', today()->subDay());
+                    break;
+                case 'this_week':
+                    $query->whereBetween('sold_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                    break;
+                case 'this_month':
+                    $query->whereMonth('sold_at', now()->month)
+                          ->whereYear('sold_at', now()->year);
+                    break;
+                case 'last_month':
+                    $query->whereMonth('sold_at', now()->subMonth()->month)
+                          ->whereYear('sold_at', now()->subMonth()->year);
+                    break;
+            }
+        }
+
+        $sales = $query->get();
+
+        // Group sales by date
+        $groupedSales = $sales->groupBy(function($sale) {
+            return $sale->sold_at->format('Y-m-d');
+        });
+
+        // Calculate totals
+        $totalSales = $sales->count();
+        $totalRevenue = $sales->sum(function($sale) {
+            return $sale->sale_price - $sale->purchase_price;
+        });
+        $totalPaid = $sales->sum(function($sale) {
+            return $sale->customerRecords->sum('paid_amount');
+        });
+        // Calculate total debt from all sales (not filtered) - using remaining debt calculation
+        $totalDebt = Phone::where('is_sold', true)
+            ->with('customerRecords')
+            ->get()
+            ->sum(function($sale) {
+                $customerRecord = $sale->customerRecords->first();
+                if ($customerRecord) {
+                    return $sale->sale_price - $customerRecord->paid_amount;
+                }
+                return $sale->sale_price; // If no customer record, full amount is debt
+            });
+
+        return view('admin.sales.index', compact('groupedSales', 'totalSales', 'totalRevenue', 'totalPaid', 'totalDebt'));
+    }
+
     public function phones(Request $request)
     {
         if (!session('admin_logged_in')) {

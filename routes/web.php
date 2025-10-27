@@ -35,6 +35,7 @@ Route::post('/logout', [AdminController::class, 'logout'])->name('admin.logout')
 Route::get('/admin/phones', [AdminController::class, 'phones'])->name('admin.phones.index');
 Route::get('/admin/phones/create', [AdminController::class, 'create'])->name('admin.phones.create');
 Route::post('/admin/phones', [AdminController::class, 'store'])->name('admin.phones.store');
+Route::get('/admin/sales', [AdminController::class, 'sales'])->name('admin.sales.index');
 Route::get('/admin/phones/models-by-brand', [AdminController::class, 'getPhoneModelsByBrand'])->name('admin.phones.models-by-brand');
 Route::get('/admin/phones/colors-by-brand', [AdminController::class, 'getColorsByBrand'])->name('admin.phones.colors-by-brand');
 Route::get('/admin/phones/search-by-serial', [AdminController::class, 'searchPhoneBySerial'])->name('admin.phones.search-by-serial');

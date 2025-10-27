@@ -35,6 +35,11 @@
                         Müşteriler
                     </a>
                     
+                    <a href="{{ route('admin.sales.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.sales.*') ? 'bg-gray-700 text-white' : '' }}">
+                        <i class="fas fa-shopping-cart mr-3"></i>
+                        Tüm Satışlar
+                    </a>
+                    
                     <a href="{{ route('admin.data.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.data.*') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-database mr-3"></i>
                         Veri Yönetimi
