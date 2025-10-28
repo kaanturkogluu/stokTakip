@@ -83,7 +83,21 @@ class CustomerController extends Controller
             'notes' => 'nullable|string|max:1000'
         ]);
 
-        Customer::create($request->all());
+        // Create customer
+        $customer = Customer::create($request->all());
+
+        // If debt amount is greater than 0, create a customer record for the debt
+        if ($request->debt > 0) {
+            CustomerRecord::create([
+                'customer_id' => $customer->id,
+                'phone_id' => null, // No specific phone for general debt
+                'sale_price' => $request->debt,
+                'paid_amount' => 0,
+                'remaining_debt' => $request->debt,
+                'payment_status' => 'pending',
+                'notes' => 'Manuel borç ekleme - ' . ($request->notes ?: 'Genel borç')
+            ]);
+        }
 
         return redirect()->route('admin.customers.index')->with('success', 'Müşteri başarıyla eklendi!');
     }
@@ -122,6 +136,24 @@ class CustomerController extends Controller
         ]);
 
         $customer->update($request->all());
+
+        // Update customer debt record if debt amount changed
+        $currentTotalDebt = $customer->total_debt;
+        $newDebtAmount = $request->debt;
+        
+        if ($newDebtAmount > $currentTotalDebt) {
+            // Add new debt record for the difference
+            $debtDifference = $newDebtAmount - $currentTotalDebt;
+            CustomerRecord::create([
+                'customer_id' => $customer->id,
+                'phone_id' => null, // No specific phone for general debt
+                'sale_price' => $debtDifference,
+                'paid_amount' => 0,
+                'remaining_debt' => $debtDifference,
+                'payment_status' => 'pending',
+                'notes' => 'Manuel borç ekleme - ' . ($request->notes ?: 'Genel borç')
+            ]);
+        }
 
         return redirect()->route('admin.customers.show', $customer)->with('success', 'Müşteri bilgileri başarıyla güncellendi!');
     }

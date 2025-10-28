@@ -38,7 +38,7 @@
                     </div>
                 </div>
                 <div class="flex space-x-2">
-                    @if($customer->debt > 0)
+                    @if($customer->total_debt > 0)
                         <a href="{{ route('admin.customers.payment', $customer) }}" 
                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200">
                             <i class="fas fa-money-bill-wave mr-2"></i>Ödeme Al
@@ -91,17 +91,17 @@
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Mevcut Borç</label>
-                        <p class="text-2xl font-bold {{ $customer->debt > 0 ? 'text-red-600' : 'text-green-600' }} mt-1">
-                            {{ $customer->formatted_debt }}
+                        <p class="text-2xl font-bold {{ $customer->total_debt > 0 ? 'text-red-600' : 'text-green-600' }} mt-1">
+                            {{ $customer->formatted_total_debt }}
                         </p>
                     </div>
 
-                    @if($customer->debt > 0)
+                    @if($customer->total_debt > 0)
                         <div class="bg-red-50 border border-red-200 rounded-lg p-4">
                             <div class="flex">
                                 <i class="fas fa-exclamation-triangle text-red-600 mt-0.5 mr-2"></i>
                                 <div class="text-sm text-red-800">
-                                    <strong>Uyarı:</strong> Bu müşterinin {{ $customer->formatted_debt }} borcu bulunmaktadır.
+                                    <strong>Uyarı:</strong> Bu müşterinin {{ $customer->formatted_total_debt }} borcu bulunmaktadır.
                                 </div>
                             </div>
                         </div>
