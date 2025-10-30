@@ -901,10 +901,14 @@ class AdminController extends Controller
             'sold_at' => now()
         ];
         
-        // Add sale note if provided
-        if ($request->filled('sale_note')) {
-            $updateData['notes'] = $request->sale_note;
-        }
+		// Add sale note if provided (append to existing notes instead of overwriting)
+		if ($request->filled('sale_note')) {
+			$existingNotes = trim((string) $phone->notes);
+			$newNote = trim($request->sale_note);
+			$updateData['notes'] = $existingNotes !== ''
+				? $existingNotes . "\n" . $newNote
+				: $newNote;
+		}
         
         $phone->update($updateData);
         $phone->refresh(); // Ensure we have the latest data
