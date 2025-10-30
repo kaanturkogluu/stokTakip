@@ -861,38 +861,36 @@ class AdminController extends Controller
         $paymentAmount = $request->payment_option === 'partial' ? $request->partial_amount : $salePrice;
         $remainingDebt = $salePrice - $paymentAmount;
 
-        // Create customer record if customer is selected
-        if ($customer) {
-            $paymentStatus = 'paid';
-            if ($remainingDebt > 0) {
-                $paymentStatus = $paymentAmount > 0 ? 'partial' : 'pending';
-            }
-            
-            CustomerRecord::create([
-                'customer_id' => $customer->id,
-                'phone_id' => $phone->id,
-                'sale_price' => $salePrice,
-                'paid_amount' => $paymentAmount,
-                'remaining_debt' => $remainingDebt,
-                'payment_status' => $paymentStatus,
-                'notes' => $request->sale_note
-            ]);
-            
-            // Update customer total debt
-            $customer->update(['debt' => $customer->total_debt]);
-            
-            // Create payment record if there was a payment
-            if ($paymentAmount > 0) {
-                CustomerPayment::create([
-                    'customer_id' => $customer->id,
-                    'amount' => $paymentAmount,
-                    'previous_debt' => $salePrice,
-                    'remaining_debt' => $remainingDebt,
-                    'payment_method' => 'cash',
-                    'notes' => 'Telefon satışı - ' . $this->getDeviceInfo($phone)
-                ]);
-            }
-        }
+		// Create customer record (even if customer is not selected) to track payments/debt
+		$paymentStatus = 'paid';
+		if ($remainingDebt > 0) {
+			$paymentStatus = $paymentAmount > 0 ? 'partial' : 'pending';
+		}
+		
+		CustomerRecord::create([
+			'customer_id' => $customer ? $customer->id : null,
+			'phone_id' => $phone->id,
+			'sale_price' => $salePrice,
+			'paid_amount' => $paymentAmount,
+			'remaining_debt' => $remainingDebt,
+			'payment_status' => $paymentStatus,
+			'notes' => $request->sale_note
+		]);
+		
+		// Update customer total debt and create payment record only when a customer exists
+		if ($customer) {
+			$customer->update(['debt' => $customer->total_debt]);
+			if ($paymentAmount > 0) {
+				CustomerPayment::create([
+					'customer_id' => $customer->id,
+					'amount' => $paymentAmount,
+					'previous_debt' => $salePrice,
+					'remaining_debt' => $remainingDebt,
+					'payment_method' => 'cash',
+					'notes' => 'Telefon satışı - ' . $this->getDeviceInfo($phone)
+				]);
+			}
+		}
 
         // Update phone as sold
         $updateData = [
