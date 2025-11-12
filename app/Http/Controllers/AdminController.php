@@ -956,6 +956,13 @@ class AdminController extends Controller
             // Check if existing customer is selected
             if ($request->customer_id) {
                 $customer = Customer::find($request->customer_id);
+                if (!$customer) {
+                    \DB::rollback();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Seçilen müşteri bulunamadı'
+                    ], 404);
+                }
             } else {
                 // Check if customer already exists by name and surname
                 $existingCustomer = Customer::where('name', $request->customer_name)
@@ -966,13 +973,22 @@ class AdminController extends Controller
                     $customer = $existingCustomer;
                 } else {
                     // Create new customer
-                    $customer = Customer::create([
-                        'name' => $request->customer_name,
-                        'surname' => $request->customer_surname,
-                        'phone' => $request->customer_phone,
-                        'debt' => 0, // Will be calculated from records
-                        'notes' => 'Müşteri kaydı'
-                    ]);
+                    try {
+                        $customer = Customer::create([
+                            'name' => $request->customer_name,
+                            'surname' => $request->customer_surname,
+                            'phone' => $request->customer_phone,
+                            'debt' => 0, // Will be calculated from records
+                            'notes' => 'Satış işlemi sırasında oluşturuldu'
+                        ]);
+                    } catch (\Exception $e) {
+                        \DB::rollback();
+                        Log::error('Customer creation error: ' . $e->getMessage());
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Müşteri oluşturulurken bir hata oluştu: ' . $e->getMessage()
+                        ], 500);
+                    }
                 }
             }
         }
@@ -997,30 +1013,57 @@ class AdminController extends Controller
 			? \Carbon\Carbon::parse($request->sale_date) 
 			: now();
 		
-		$customerRecord = CustomerRecord::create([
-			'customer_id' => $customer ? $customer->id : null,
-			'phone_id' => $phone->id,
-			'sale_price' => $salePrice,
-			'paid_amount' => $paymentAmount,
-			'remaining_debt' => round($remainingDebt, 2), // Round to 2 decimal places
-			'payment_status' => $paymentStatus,
-			'notes' => $request->sale_note,
-			'created_at' => $saleDate, // Set custom sale date
-			'updated_at' => $saleDate
-		]);
+		try {
+			$customerRecord = CustomerRecord::create([
+				'customer_id' => $customer ? $customer->id : null,
+				'phone_id' => $phone->id,
+				'sale_price' => $salePrice,
+				'paid_amount' => $paymentAmount,
+				'remaining_debt' => round($remainingDebt, 2), // Round to 2 decimal places
+				'payment_status' => $paymentStatus,
+				'notes' => $request->sale_note,
+				'created_at' => $saleDate, // Set custom sale date
+				'updated_at' => $saleDate
+			]);
+		} catch (\Exception $e) {
+			\DB::rollback();
+			Log::error('CustomerRecord creation error: ' . $e->getMessage(), [
+				'phone_id' => $phone->id,
+				'customer_id' => $customer ? $customer->id : null,
+				'sale_price' => $salePrice,
+				'error' => $e->getTraceAsString()
+			]);
+			return response()->json([
+				'success' => false,
+				'message' => 'Satış kaydı oluşturulurken bir hata oluştu: ' . $e->getMessage()
+			], 500);
+		}
 		
 		// Update customer total debt and create payment record only when a customer exists
 		if ($customer) {
-			$customer->update(['debt' => $customer->total_debt]);
-			if ($paymentAmount > 0) {
-				CustomerPayment::create([
+			try {
+				$customer->update(['debt' => $customer->total_debt]);
+				if ($paymentAmount > 0) {
+					CustomerPayment::create([
+						'customer_id' => $customer->id,
+						'amount' => $paymentAmount,
+						'previous_debt' => $salePrice,
+						'remaining_debt' => $remainingDebt,
+						'payment_method' => 'cash',
+						'notes' => 'Telefon satışı - ' . $this->getDeviceInfo($phone)
+					]);
+				}
+			} catch (\Exception $e) {
+				\DB::rollback();
+				Log::error('Customer payment creation error: ' . $e->getMessage(), [
 					'customer_id' => $customer->id,
-					'amount' => $paymentAmount,
-					'previous_debt' => $salePrice,
-					'remaining_debt' => $remainingDebt,
-					'payment_method' => 'cash',
-					'notes' => 'Telefon satışı - ' . $this->getDeviceInfo($phone)
+					'payment_amount' => $paymentAmount,
+					'error' => $e->getTraceAsString()
 				]);
+				return response()->json([
+					'success' => false,
+					'message' => 'Ödeme kaydı oluşturulurken bir hata oluştu: ' . $e->getMessage()
+				], 500);
 			}
 		}
 
@@ -1073,10 +1116,24 @@ class AdminController extends Controller
             'message' => $message
         ]);
         
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Rollback transaction on validation error
+            \DB::rollback();
+            Log::error('Sale validation error:', $e->errors());
+            return response()->json([
+                'success' => false,
+                'message' => 'Doğrulama hatası: ' . implode(', ', array_map(function($errors) {
+                    return implode(', ', $errors);
+                }, $e->errors()))
+            ], 422);
         } catch (\Exception $e) {
             // Rollback transaction on error
             \DB::rollback();
-            Log::error('Sale error: ' . $e->getMessage());
+            Log::error('Sale error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Satış işlemi sırasında bir hata oluştu: ' . $e->getMessage()
