@@ -389,6 +389,7 @@ class AdminController extends Controller
             'origin' => 'required|in:yurtdisi,turkiye',
             'stock_serials' => 'required|string',
             'notes' => 'nullable|string',
+            'customer_info' => 'nullable|string',
             'is_featured' => 'boolean',
             'images' => 'nullable|array',
             'images.*' => 'nullable|string'
@@ -513,6 +514,7 @@ class AdminController extends Controller
             'origin' => 'required|in:yurtdisi,turkiye',
             'stock_serial' => 'required|string|max:255',
             'notes' => 'nullable|string',
+            'customer_info' => 'nullable|string',
             'is_featured' => 'boolean',
             'is_sold' => 'boolean',
             'sold_at' => 'nullable|date',

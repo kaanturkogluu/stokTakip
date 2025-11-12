@@ -191,6 +191,21 @@
                 @enderror
             </div>
 
+            <!-- Customer Info -->
+            <div>
+                <label for="customer_info" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-user mr-2"></i>Müşteri Bilgileri
+                </label>
+                <textarea id="customer_info" 
+                          name="customer_info" 
+                          rows="3"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('customer_info') border-red-500 @enderror"
+                          placeholder="Müşteri adı, telefon, adres gibi bilgiler...">{{ old('customer_info', $phone->customer_info) }}</textarea>
+                @error('customer_info')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
             <!-- Pricing -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Purchase Price -->

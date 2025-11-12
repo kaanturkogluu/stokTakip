@@ -24,7 +24,8 @@ class Phone extends Model
         'stock_serial',
         'condition',
         'origin',
-        'notes'
+        'notes',
+        'customer_info'
     ];
 
     protected $casts = [
