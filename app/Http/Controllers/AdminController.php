@@ -110,10 +110,12 @@ class AdminController extends Controller
         if ($request->filled('search')) {
             $searchTerm = $request->get('search');
             $query->where(function($q) use ($searchTerm) {
+                // Search in phone name and serial - this will show all sales (with or without customer)
                 $q->whereHas('phone', function($phoneQuery) use ($searchTerm) {
                     $phoneQuery->where('name', 'LIKE', "%{$searchTerm}%")
                                ->orWhere('stock_serial', 'LIKE', "%{$searchTerm}%");
                 })
+                // Search in customer name - only if customer exists
                 ->orWhereHas('customer', function($customerQuery) use ($searchTerm) {
                     // Split search term by spaces
                     $searchParts = preg_split('/\s+/', trim($searchTerm));
