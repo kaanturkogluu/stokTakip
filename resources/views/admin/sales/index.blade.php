@@ -257,15 +257,21 @@
                                         {{ ($sale->sold_at ?? $sale->created_at)->format('H:i') }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        @if($phone->is_sold)
-                                            <button onclick="openRepurchaseModal({{ $phone->id }}, {{ json_encode($phone->name) }}, {{ $sale->sale_price ?? 0 }})" 
-                                                    style="background-color: #ea580c; color: white;" 
-                                                    class="px-3 py-1.5 rounded-lg hover:opacity-90 transition duration-200 text-xs font-medium">
-                                                <i class="fas fa-undo mr-1"></i>Geri Al
+                                        <div class="flex items-center space-x-2">
+                                            @if($phone->is_sold)
+                                                <button onclick="openRepurchaseModal({{ $phone->id }}, {{ json_encode($phone->name) }}, {{ $sale->sale_price ?? 0 }})" 
+                                                        style="background-color: #ea580c; color: white;" 
+                                                        class="px-3 py-1.5 rounded-lg hover:opacity-90 transition duration-200 text-xs font-medium">
+                                                    <i class="fas fa-undo mr-1"></i>Geri Al
+                                                </button>
+                                            @else
+                                                <span class="text-xs text-gray-400">Geri alınmış</span>
+                                            @endif
+                                            <button onclick="deleteSale('{{ $sale->id }}', {{ json_encode($phone->name) }})" 
+                                                    class="px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition duration-200 text-xs font-medium">
+                                                <i class="fas fa-trash mr-1"></i>Sil
                                             </button>
-                                        @else
-                                            <span class="text-xs text-gray-400">Geri alınmış</span>
-                                        @endif
+                                        </div>
                                     </td>
                                 </tr>
                                 @endif
@@ -434,5 +440,84 @@ document.getElementById('repurchaseModal').addEventListener('click', function(e)
         closeRepurchaseModal();
     }
 });
+
+// Delete sale function
+function deleteSale(saleId, deviceName) {
+    Swal.fire({
+        title: 'Satış Kaydını Sil',
+        html: `Bu satış kaydını silmek istediğinizden emin misiniz?<br><br><strong>${deviceName}</strong><br><br>Bu işlem geri alınamaz. Satış kaydı silinecek, ancak müşteri kaydı korunacaktır.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Evet, Sil',
+        cancelButtonText: 'İptal',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // CSRF token al
+            const tokenElement = document.querySelector('meta[name="csrf-token"]');
+            if (!tokenElement) {
+                Swal.fire({
+                    title: 'Hata!',
+                    text: 'CSRF token bulunamadı. Sayfayı yenileyin.',
+                    icon: 'error',
+                    confirmButtonText: 'Tamam'
+                });
+                return;
+            }
+            const token = tokenElement.getAttribute('content');
+            
+            // Loading göster
+            Swal.fire({
+                title: 'Siliniyor...',
+                text: 'Lütfen bekleyin',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // DELETE request gönder
+            fetch(`/admin/sales/${saleId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Başarılı!',
+                        text: data.message,
+                        icon: 'success',
+                        confirmButtonText: 'Tamam'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Hata!',
+                        text: data.message || 'Satış kaydı silinirken bir hata oluştu.',
+                        icon: 'error',
+                        confirmButtonText: 'Tamam'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Hata!',
+                    text: 'Satış kaydı silinirken bir hata oluştu.',
+                    icon: 'error',
+                    confirmButtonText: 'Tamam'
+                });
+            });
+        }
+    });
+}
 </script>
 @endsection

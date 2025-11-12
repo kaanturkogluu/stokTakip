@@ -1165,6 +1165,137 @@ class AdminController extends Controller
         }
     }
 
+    public function deleteSale(Request $request, $saleId)
+    {
+        if (!session('admin_logged_in')) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+            }
+            return redirect()->route('admin.login');
+        }
+
+        try {
+            \DB::beginTransaction();
+
+            // Parse sale ID to determine type
+            if (strpos($saleId, 'cr_') === 0) {
+                // CustomerRecord type
+                $recordId = (int) str_replace('cr_', '', $saleId);
+                $customerRecord = CustomerRecord::with(['phone', 'customer'])->find($recordId);
+
+                if (!$customerRecord) {
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Satış kaydı bulunamadı'
+                        ], 404);
+                    }
+                    return redirect()->back()->with('error', 'Satış kaydı bulunamadı');
+                }
+
+                $phone = $customerRecord->phone;
+                $customer = $customerRecord->customer;
+
+                // Delete CustomerRecord
+                $customerRecord->delete();
+
+                // Update phone - mark as not sold
+                if ($phone) {
+                    $phone->update([
+                        'is_sold' => false,
+                        'sold_at' => null,
+                        'sale_price' => null
+                    ]);
+                }
+
+                // Update customer debt if customer exists (but don't delete customer)
+                if ($customer) {
+                    $customer->update(['debt' => $customer->total_debt]);
+                }
+
+                // Audit log
+                if ($phone) {
+                    AuditHelper::logDelete($phone, "Satış kaydı silindi - {$phone->name}");
+                }
+
+                \DB::commit();
+
+                $message = "Satış kaydı başarıyla silindi.";
+                if ($phone) {
+                    $message .= " Cihaz: {$phone->name}";
+                }
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => $message
+                    ]);
+                }
+
+                return redirect()->route('admin.sales.index')->with('success', $message);
+
+            } elseif (strpos($saleId, 'phone_') === 0) {
+                // Phone only type (old sales without CustomerRecord)
+                $phoneId = (int) str_replace('phone_', '', $saleId);
+                $phone = Phone::find($phoneId);
+
+                if (!$phone) {
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Cihaz bulunamadı'
+                        ], 404);
+                    }
+                    return redirect()->back()->with('error', 'Cihaz bulunamadı');
+                }
+
+                // Update phone - mark as not sold
+                $phone->update([
+                    'is_sold' => false,
+                    'sold_at' => null,
+                    'sale_price' => null
+                ]);
+
+                // Audit log
+                AuditHelper::logDelete($phone, "Eski satış kaydı silindi - {$phone->name}");
+
+                \DB::commit();
+
+                $message = "Satış kaydı başarıyla silindi. Cihaz: {$phone->name}";
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => $message
+                    ]);
+                }
+
+                return redirect()->route('admin.sales.index')->with('success', $message);
+            } else {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Geçersiz satış ID formatı'
+                    ], 400);
+                }
+                return redirect()->back()->with('error', 'Geçersiz satış ID formatı');
+            }
+
+        } catch (\Exception $e) {
+            \DB::rollback();
+            Log::error('Delete sale error: ' . $e->getMessage());
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Satış kaydı silinirken bir hata oluştu: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->back()->with('error', 'Satış kaydı silinirken bir hata oluştu: ' . $e->getMessage());
+        }
+    }
+
     // Helper function to get device information
     private function getDeviceInfo($phone)
     {
