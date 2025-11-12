@@ -19,11 +19,33 @@ class CustomerController extends Controller
 
         // Search functionality
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = trim($request->search);
             $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('surname', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                // Split search term by spaces
+                $searchParts = preg_split('/\s+/', $search);
+                
+                if (count($searchParts) > 1) {
+                    // If multiple words, search for first word in name and rest in surname
+                    $firstName = $searchParts[0];
+                    $lastName = implode(' ', array_slice($searchParts, 1));
+                    
+                    $q->where(function($subQ) use ($firstName, $lastName) {
+                        $subQ->where('name', 'like', "%{$firstName}%")
+                             ->where('surname', 'like', "%{$lastName}%");
+                    })
+                    // Also search for full name concatenated
+                    ->orWhereRaw("CONCAT(name, ' ', surname) LIKE ?", ["%{$search}%"])
+                    // Also search in individual fields
+                    ->orWhere('name', 'like', "%{$search}%")
+                    ->orWhere('surname', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+                } else {
+                    // Single word - search in all fields
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('surname', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%")
+                      ->orWhereRaw("CONCAT(name, ' ', surname) LIKE ?", ["%{$search}%"]);
+                }
             });
         }
 
@@ -85,6 +107,7 @@ class CustomerController extends Controller
 
         // Create customer
         $customer = Customer::create($request->all());
+        \App\Helpers\AuditHelper::logCreate($customer);
 
         // If debt amount is greater than 0, create a customer record for the debt
         if ($request->debt > 0) {
@@ -135,7 +158,9 @@ class CustomerController extends Controller
             'notes' => 'nullable|string|max:1000'
         ]);
 
+        $oldValues = $customer->toArray();
         $customer->update($request->all());
+        \App\Helpers\AuditHelper::logUpdate($customer, $oldValues);
 
         // Update customer debt record if debt amount changed
         $currentTotalDebt = $customer->total_debt;
@@ -165,6 +190,7 @@ class CustomerController extends Controller
         }
 
         $customer->delete();
+        \App\Helpers\AuditHelper::logDelete($customer);
 
         return redirect()->route('admin.customers.index')->with('success', 'Müşteri başarıyla silindi!');
     }
@@ -294,18 +320,19 @@ class CustomerController extends Controller
         ]);
 
         // Update customer records with payment
-        $remainingAmount = $amount;
-        $customerRecords = $customer->records()->where('remaining_debt', '>', 0)->orderBy('created_at')->get();
+        $remainingAmount = floatval($amount);
+        $customerRecords = $customer->records()->where('remaining_debt', '>', 0.01)->orderBy('created_at')->get();
         
         foreach ($customerRecords as $record) {
-            if ($remainingAmount <= 0) break;
+            if ($remainingAmount <= 0.01) break;
             
             $paymentToRecord = min($remainingAmount, $record->remaining_debt);
-            $record->paid_amount += $paymentToRecord;
-            $record->remaining_debt -= $paymentToRecord;
+            $record->paid_amount = round($record->paid_amount + $paymentToRecord, 2);
+            $record->remaining_debt = max(0, round($record->remaining_debt - $paymentToRecord, 2)); // Ensure remaining_debt is never negative
             
             // Update payment status
-            if ($record->remaining_debt <= 0) {
+            if ($record->remaining_debt <= 0.01) {
+                $record->remaining_debt = 0; // Set to exactly 0 if very close
                 $record->payment_status = 'paid';
             } else {
                 $record->payment_status = 'partial';
@@ -317,6 +344,9 @@ class CustomerController extends Controller
 
         // Update customer total debt
         $customer->update(['debt' => $customer->total_debt]);
+
+        // Audit log
+        \App\Helpers\AuditHelper::logPayment($customer, $amount);
 
         // Prepare response
         $message = "Ödeme başarıyla kaydedildi. Tutar: " . number_format($amount, 2) . " ₺ - " . $paymentMethodText;

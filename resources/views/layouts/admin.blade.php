@@ -46,6 +46,24 @@
                     </a>
                     
                     <div class="pt-2">
+                        <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Yönetim</p>
+                    </div>
+                    
+                    @php
+                        $currentAdmin = \App\Models\Admin::find(session('admin_id'));
+                    @endphp
+                    @if($currentAdmin && $currentAdmin->isAdmin())
+                        <a href="{{ route('admin.admins.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.admins.*') ? 'bg-gray-700 text-white' : '' }}">
+                            <i class="fas fa-user-shield mr-3"></i>
+                            Admin Yönetimi
+                        </a>
+                        <a href="{{ route('admin.audit-logs.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.audit-logs.*') ? 'bg-gray-700 text-white' : '' }}">
+                            <i class="fas fa-history mr-3"></i>
+                            İşlem Geçmişi
+                        </a>
+                    @endif
+                    
+                    <div class="pt-2">
                         <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Diğer</p>
                     </div>
                     
@@ -87,7 +105,7 @@
 
                     <!-- User Info -->
                     <div class="flex items-center space-x-4">
-                        <span class="text-sm text-gray-600">Admin</span>
+                        <span class="text-sm text-gray-600">{{ session('admin_name', 'Admin') }}</span>
                         <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                             <i class="fas fa-user text-white text-sm"></i>
                         </div>

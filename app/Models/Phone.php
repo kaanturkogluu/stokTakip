@@ -19,6 +19,8 @@ class Phone extends Model
         'is_featured',
         'is_sold',
         'sold_at',
+        'repurchased_at',
+        'repurchase_price',
         'stock_serial',
         'condition',
         'origin',
@@ -29,9 +31,11 @@ class Phone extends Model
         'images' => 'array',
         'purchase_price' => 'decimal:2',
         'sale_price' => 'decimal:2',
+        'repurchase_price' => 'decimal:2',
         'is_featured' => 'boolean',
         'is_sold' => 'boolean',
-        'sold_at' => 'datetime'
+        'sold_at' => 'datetime',
+        'repurchased_at' => 'datetime'
     ];
 
     // Relationships

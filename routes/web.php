@@ -40,6 +40,7 @@ Route::get('/admin/phones/models-by-brand', [AdminController::class, 'getPhoneMo
 Route::get('/admin/phones/colors-by-brand', [AdminController::class, 'getColorsByBrand'])->name('admin.phones.colors-by-brand');
 Route::get('/admin/phones/search-by-serial', [AdminController::class, 'searchPhoneBySerial'])->name('admin.phones.search-by-serial');
 Route::post('/admin/phones/sell', [AdminController::class, 'sellPhone'])->name('admin.phones.sell');
+Route::post('/admin/phones/repurchase', [AdminController::class, 'repurchasePhone'])->name('admin.phones.repurchase');
 Route::get('/admin/phones/{phone}', [AdminController::class, 'show'])->name('admin.phones.show');
 Route::get('/admin/phones/{phone}/edit', [AdminController::class, 'edit'])->name('admin.phones.edit');
 Route::put('/admin/phones/{phone}', [AdminController::class, 'update'])->name('admin.phones.update');
@@ -92,3 +93,14 @@ Route::delete('/admin/customers/{customer}', [CustomerController::class, 'destro
 Route::get('/admin/customers/{customer}/payment', [CustomerController::class, 'payment'])->name('admin.customers.payment');
 Route::get('/admin/customers/{customer}/debts', [CustomerController::class, 'getDebts'])->name('admin.customers.debts');
 Route::post('/admin/customers/{customer}/payment', [CustomerController::class, 'processPayment'])->name('admin.customers.payment.process');
+
+// Admin Management Routes
+Route::get('/admin/admins', [AdminController::class, 'admins'])->name('admin.admins.index');
+Route::get('/admin/admins/create', [AdminController::class, 'createAdmin'])->name('admin.admins.create');
+Route::post('/admin/admins', [AdminController::class, 'storeAdmin'])->name('admin.admins.store');
+Route::get('/admin/admins/{admin}/edit', [AdminController::class, 'editAdmin'])->name('admin.admins.edit');
+Route::put('/admin/admins/{admin}', [AdminController::class, 'updateAdmin'])->name('admin.admins.update');
+Route::delete('/admin/admins/{admin}', [AdminController::class, 'destroyAdmin'])->name('admin.admins.destroy');
+
+// Audit Logs Routes
+Route::get('/admin/audit-logs', [AdminController::class, 'auditLogs'])->name('admin.audit-logs.index');

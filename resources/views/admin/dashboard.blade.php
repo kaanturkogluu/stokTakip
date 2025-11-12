@@ -62,7 +62,7 @@
 
     <!-- Quick Actions - Center Section -->
     <div class="flex justify-center">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl">
             <!-- Add New Phone -->
             <div class="bg-white rounded-xl shadow-lg p-8 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                 <div class="mb-6">
@@ -105,6 +105,22 @@
                 <button onclick="openSaleModal()" 
                         class="inline-block w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-4 px-6 rounded-lg transition duration-200 text-lg shadow-lg">
                     <i class="fas fa-shopping-cart mr-2"></i>Satış Yap
+                </button>
+            </div>
+
+            <!-- Repurchase Device -->
+            <div class="bg-white rounded-xl shadow-lg p-8 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <div class="mb-6">
+                    <div class="mx-auto w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-undo text-3xl text-orange-600"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Cihaz Geri Al</h3>
+                    <p class="text-gray-600 mb-6">Müşteriden cihaz geri alın</p>
+                </div>
+                <button onclick="openRepurchaseModal()" 
+                        style="background-color: #ea580c; color: white;"
+                        class="inline-block w-full font-semibold py-4 px-6 rounded-lg hover:opacity-90 transition duration-200 text-lg shadow-lg">
+                    <i class="fas fa-undo mr-2"></i>Cihaz Geri Al
                 </button>
             </div>
         </div>
@@ -179,6 +195,18 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                
+                <div class="mb-4" id="dateSection" style="display: none;">
+                    <label for="saleDate" class="block text-sm font-medium text-gray-700 mb-2">
+                        Satış Tarihi (Opsiyonel)
+                    </label>
+                    <input type="datetime-local" 
+                           id="saleDate" 
+                           name="sale_date"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Satış tarihini seçin...">
+                    <p class="mt-1 text-xs text-gray-500">Tarih girilmezse şu anki tarih kullanılacaktır</p>
                 </div>
                 
                 <div class="mb-4" id="noteSection" style="display: none;">
@@ -326,11 +354,22 @@ function openSaleModal() {
     document.getElementById('saleForm').reset();
     document.getElementById('phoneInfo').classList.add('hidden');
     document.getElementById('priceSection').style.display = 'none';
+    document.getElementById('dateSection').style.display = 'none';
     document.getElementById('noteSection').style.display = 'none';
     document.getElementById('customerSection').style.display = 'none';
     document.getElementById('saleButton').disabled = true;
     document.getElementById('confirmDevice').checked = false;
     currentPhone = null;
+    
+    // Set default date to now (format: YYYY-MM-DDTHH:mm)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const dateTimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+    document.getElementById('saleDate').value = dateTimeString;
 }
 
 function closeSaleModal() {
@@ -338,6 +377,7 @@ function closeSaleModal() {
     document.getElementById('saleForm').reset();
     document.getElementById('phoneInfo').classList.add('hidden');
     document.getElementById('priceSection').style.display = 'none';
+    document.getElementById('dateSection').style.display = 'none';
     document.getElementById('noteSection').style.display = 'none';
     document.getElementById('customerSection').style.display = 'none';
     document.getElementById('saleButton').disabled = true;
@@ -430,11 +470,13 @@ function displayPhoneInfo(phone) {
         confirmCheckbox.addEventListener('change', function() {
             if (this.checked && !phone.is_sold) {
                 document.getElementById('priceSection').style.display = 'block';
+                document.getElementById('dateSection').style.display = 'block';
                 document.getElementById('noteSection').style.display = 'block';
                 document.getElementById('customerSection').style.display = 'block';
                 document.getElementById('salePrice').focus();
             } else {
                 document.getElementById('priceSection').style.display = 'none';
+                document.getElementById('dateSection').style.display = 'none';
                 document.getElementById('noteSection').style.display = 'none';
                 document.getElementById('customerSection').style.display = 'none';
                 document.getElementById('saleButton').disabled = true;
@@ -583,6 +625,7 @@ function processSale(event) {
     const serialNumber = formData.get('serial_number');
     const salePrice = parseFloat(formData.get('sale_price'));
     const saleNote = formData.get('sale_note');
+    const saleDate = formData.get('sale_date'); // Get sale date
     const purchasePrice = parseFloat(currentPhone.purchase_price);
     
     // Customer data
@@ -683,16 +726,16 @@ function processSale(event) {
             cancelButtonText: 'İptal'
         }).then((result) => {
             if (result.isConfirmed) {
-                executeSale(serialNumber, salePrice, saleNote, addToCustomers, customerId, customerName, customerSurname, customerPhone, paymentOption, partialAmount);
+                executeSale(serialNumber, salePrice, saleNote, saleDate, addToCustomers, customerId, customerName, customerSurname, customerPhone, paymentOption, partialAmount);
             }
         });
     } else {
         // Sale price is higher or equal, proceed directly
-        executeSale(serialNumber, salePrice, saleNote, addToCustomers, customerId, customerName, customerSurname, customerPhone, paymentOption, partialAmount);
+        executeSale(serialNumber, salePrice, saleNote, saleDate, addToCustomers, customerId, customerName, customerSurname, customerPhone, paymentOption, partialAmount);
     }
 }
 
-function executeSale(serialNumber, salePrice, saleNote, addToCustomers, customerId, customerName, customerSurname, customerPhone, paymentOption, partialAmount) {
+function executeSale(serialNumber, salePrice, saleNote, saleDate, addToCustomers, customerId, customerName, customerSurname, customerPhone, paymentOption, partialAmount) {
     console.log('executeSale called with:', { 
         serialNumber, salePrice, saleNote, addToCustomers, customerName, customerSurname, customerPhone, paymentOption, partialAmount 
     }); // Debug log
@@ -720,6 +763,7 @@ function executeSale(serialNumber, salePrice, saleNote, addToCustomers, customer
             serial_number: serialNumber,
             sale_price: salePrice,
             sale_note: saleNote,
+            sale_date: saleDate, // Include sale date
             add_to_customers: addToCustomers,
             customer_id: customerId,
             customer_name: customerName,
@@ -786,5 +830,366 @@ function executeSale(serialNumber, salePrice, saleNote, addToCustomers, customer
         });
     });
 }
+</script>
+
+<!-- Repurchase Modal -->
+<div id="repurchaseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Cihaz Geri Al</h3>
+                <button onclick="closeRepurchaseModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="repurchaseForm" onsubmit="processRepurchase(event)">
+                <div class="mb-4">
+                    <label for="repurchaseSerialNumber" class="block text-sm font-medium text-gray-700 mb-2">
+                        Stok Kodu / Seri Numarası
+                    </label>
+                    <div class="flex space-x-2">
+                        <input type="text" 
+                               id="repurchaseSerialNumber" 
+                               name="serial_number"
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                               placeholder="Stok kodunu girin..."
+                               required>
+                        <button type="button" 
+                                onclick="searchRepurchasePhone()"
+                                style="background-color: #ea580c; color: white;"
+                                class="px-4 py-2 rounded-md hover:opacity-90 transition duration-200">
+                            <i class="fas fa-search mr-1"></i>Sorgula
+                        </button>
+                    </div>
+                    
+                    <div id="repurchasePhoneInfo" class="mt-4 hidden">
+                        <div class="bg-orange-50 border border-orange-200 rounded-md p-4">
+                            <div id="repurchasePhoneDetails"></div>
+                            <div class="mt-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" 
+                                           id="confirmRepurchaseDevice" 
+                                           style="accent-color: #ea580c;"
+                                           class="form-checkbox h-4 w-4 rounded focus:ring-2 focus:ring-orange-500">
+                                    <span class="ml-2 text-sm font-medium text-gray-700">Cihazı Onayla</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4" id="repurchasePriceSection" style="display: none;">
+                    <label for="repurchasePrice" class="block text-sm font-medium text-gray-700 mb-2">
+                        Geri Alma Fiyatı (₺) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" 
+                           id="repurchasePrice" 
+                           name="repurchase_price"
+                           step="0.01"
+                           min="0"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                           placeholder="Geri alma fiyatını girin..."
+                           required>
+                </div>
+                
+                <div class="mb-4" id="repurchaseNoteSection" style="display: none;">
+                    <label for="repurchaseNote" class="block text-sm font-medium text-gray-700 mb-2">
+                        Not (Opsiyonel)
+                    </label>
+                    <textarea id="repurchaseNote" 
+                              name="repurchase_note"
+                              rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              placeholder="Geri alma ile ilgili notlarınızı buraya yazabilirsiniz..."></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" 
+                            onclick="closeRepurchaseModal()"
+                            style="background-color: #d1d5db; color: #374151;"
+                            class="px-4 py-2 rounded-md hover:opacity-90 transition duration-200">
+                        İptal
+                    </button>
+                    <button type="submit" 
+                            id="repurchaseButton"
+                            style="background-color: #ea580c; color: white;"
+                            class="px-4 py-2 rounded-md hover:opacity-90 transition duration-200"
+                            disabled>
+                        <i class="fas fa-undo mr-1"></i>Geri Al
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Repurchase Modal Functions
+let currentRepurchasePhone = null;
+
+function openRepurchaseModal() {
+    document.getElementById('repurchaseModal').classList.remove('hidden');
+    document.getElementById('repurchaseForm').reset();
+    document.getElementById('repurchasePhoneInfo').classList.add('hidden');
+    document.getElementById('repurchasePriceSection').style.display = 'none';
+    document.getElementById('repurchaseNoteSection').style.display = 'none';
+    document.getElementById('repurchaseButton').disabled = true;
+    currentRepurchasePhone = null;
+}
+
+function closeRepurchaseModal() {
+    document.getElementById('repurchaseModal').classList.add('hidden');
+    document.getElementById('repurchaseForm').reset();
+    document.getElementById('repurchasePhoneInfo').classList.add('hidden');
+    document.getElementById('repurchasePriceSection').style.display = 'none';
+    document.getElementById('repurchaseNoteSection').style.display = 'none';
+    document.getElementById('repurchaseButton').disabled = true;
+    currentRepurchasePhone = null;
+}
+
+function searchRepurchasePhone() {
+    const serialNumber = document.getElementById('repurchaseSerialNumber').value.trim();
+    if (serialNumber.length < 3) {
+        Swal.fire({
+            title: 'Uyarı!',
+            text: 'Lütfen en az 3 karakter girin.',
+            icon: 'warning',
+            confirmButtonText: 'Tamam'
+        });
+        return;
+    }
+    
+    searchRepurchasePhoneBySerial(serialNumber);
+}
+
+function searchRepurchasePhoneBySerial(serialNumber) {
+    fetch(`/admin/phones/search-by-serial?serial=${encodeURIComponent(serialNumber)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.phone) {
+                // Check if phone is sold
+                if (!data.phone.is_sold) {
+                    Swal.fire({
+                        title: 'Uyarı!',
+                        text: 'Bu cihaz satılmamış. Sadece satılmış cihazlar geri alınabilir.',
+                        icon: 'warning',
+                        confirmButtonText: 'Tamam'
+                    });
+                    document.getElementById('repurchasePhoneInfo').classList.add('hidden');
+                    document.getElementById('repurchasePriceSection').style.display = 'none';
+                    document.getElementById('repurchaseNoteSection').style.display = 'none';
+                    document.getElementById('repurchaseButton').disabled = true;
+                    return;
+                }
+                
+                currentRepurchasePhone = data.phone;
+                displayRepurchasePhoneInfo(data.phone);
+            } else {
+                document.getElementById('repurchasePhoneInfo').classList.add('hidden');
+                document.getElementById('repurchasePriceSection').style.display = 'none';
+                document.getElementById('repurchaseNoteSection').style.display = 'none';
+                document.getElementById('repurchaseButton').disabled = true;
+                Swal.fire({
+                    title: 'Hata!',
+                    text: 'Bu seri numarasına sahip cihaz bulunamadı.',
+                    icon: 'error',
+                    confirmButtonText: 'Tamam'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('repurchasePhoneInfo').classList.add('hidden');
+            document.getElementById('repurchasePriceSection').style.display = 'none';
+            document.getElementById('repurchaseNoteSection').style.display = 'none';
+            document.getElementById('repurchaseButton').disabled = true;
+            Swal.fire({
+                title: 'Hata!',
+                text: 'Arama sırasında bir hata oluştu.',
+                icon: 'error',
+                confirmButtonText: 'Tamam'
+            });
+        });
+}
+
+function displayRepurchasePhoneInfo(phone) {
+    const phoneInfo = document.getElementById('repurchasePhoneInfo');
+    const phoneDetails = document.getElementById('repurchasePhoneDetails');
+    
+    const saleDate = phone.sold_at ? new Date(phone.sold_at).toLocaleDateString('tr-TR') : 'Bilinmiyor';
+    const salePrice = phone.sale_price ? parseFloat(phone.sale_price).toFixed(2) : '0.00';
+    
+    phoneDetails.innerHTML = `
+        <div class="text-sm">
+            <div class="font-bold text-lg text-gray-900 mb-2">${phone.name}</div>
+            <div class="text-gray-600 mb-1"><strong>Marka:</strong> ${phone.brand?.name || 'N/A'}</div>
+            <div class="text-gray-600 mb-1"><strong>Model:</strong> ${phone.phoneModel?.name || phone.phone_model?.name || 'N/A'}</div>
+            ${phone.storage ? `<div class="text-gray-600 mb-1"><strong>Depolama:</strong> ${phone.storage.name}</div>` : ''}
+            <div class="text-gray-600 mb-1"><strong>Seri No:</strong> ${phone.stock_serial || 'N/A'}</div>
+            <div class="text-gray-600 mb-1"><strong>Satış Fiyatı:</strong> <span class="font-semibold text-green-600">${salePrice} ₺</span></div>
+            <div class="text-gray-600 mb-1"><strong>Satış Tarihi:</strong> ${saleDate}</div>
+            ${phone.purchase_price ? `<div class="text-gray-600 mb-1"><strong>Alış Fiyatı:</strong> ${parseFloat(phone.purchase_price).toFixed(2)} ₺</div>` : ''}
+        </div>
+    `;
+    
+    phoneInfo.classList.remove('hidden');
+    document.getElementById('repurchasePriceSection').style.display = 'block';
+    document.getElementById('repurchaseNoteSection').style.display = 'block';
+    document.getElementById('repurchaseButton').disabled = true;
+}
+
+// Enable repurchase button when device is confirmed
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmCheckbox = document.getElementById('confirmRepurchaseDevice');
+    if (confirmCheckbox) {
+        confirmCheckbox.addEventListener('change', function() {
+            const repurchaseButton = document.getElementById('repurchaseButton');
+            if (this.checked && currentRepurchasePhone) {
+                repurchaseButton.disabled = false;
+            } else {
+                repurchaseButton.disabled = true;
+            }
+        });
+    }
+});
+
+function processRepurchase(event) {
+    event.preventDefault();
+    
+    // Check if device is confirmed
+    if (!document.getElementById('confirmRepurchaseDevice').checked) {
+        Swal.fire({
+            title: 'Uyarı!',
+            text: 'Lütfen cihazı onaylayın.',
+            icon: 'warning',
+            confirmButtonText: 'Tamam'
+        });
+        return;
+    }
+    
+    // Check if device is sold
+    if (!currentRepurchasePhone || !currentRepurchasePhone.is_sold) {
+        Swal.fire({
+            title: 'Hata!',
+            text: 'Bu cihaz satılmamış. Geri alma işlemi yapılamaz.',
+            icon: 'error',
+            confirmButtonText: 'Tamam'
+        });
+        return;
+    }
+    
+    const formData = new FormData(event.target);
+    const repurchasePrice = parseFloat(formData.get('repurchase_price'));
+    const repurchaseNote = formData.get('repurchase_note');
+    
+    // Validate repurchase price
+    if (!repurchasePrice || repurchasePrice <= 0) {
+        Swal.fire({
+            title: 'Uyarı!',
+            text: 'Lütfen geçerli bir geri alma fiyatı giriniz.',
+            icon: 'warning',
+            confirmButtonText: 'Tamam'
+        });
+        return;
+    }
+    
+    // Confirm repurchase
+    Swal.fire({
+        title: 'Emin misiniz?',
+        text: `${currentRepurchasePhone.name} cihazı ${repurchasePrice.toFixed(2)} ₺ karşılığında geri alınacak.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#ea580c',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Evet, Geri Al',
+        cancelButtonText: 'İptal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            executeRepurchase(currentRepurchasePhone.id, repurchasePrice, repurchaseNote);
+        }
+    });
+}
+
+function executeRepurchase(phoneId, repurchasePrice, repurchaseNote) {
+    // CSRF token al
+    const tokenElement = document.querySelector('meta[name="csrf-token"]');
+    if (!tokenElement) {
+        Swal.fire({
+            title: 'Hata!',
+            text: 'CSRF token bulunamadı. Sayfayı yenileyin.',
+            icon: 'error',
+            confirmButtonText: 'Tamam'
+        });
+        return;
+    }
+    const token = tokenElement.getAttribute('content');
+    
+    // Loading göster
+    Swal.fire({
+        title: 'İşlem yapılıyor...',
+        text: 'Lütfen bekleyin',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    fetch('/admin/phones/repurchase', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token
+        },
+        body: JSON.stringify({
+            phone_id: phoneId,
+            repurchase_price: repurchasePrice,
+            repurchase_note: repurchaseNote
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                title: 'Başarılı!',
+                text: data.message,
+                icon: 'success',
+                confirmButtonText: 'Tamam'
+            }).then(() => {
+                closeRepurchaseModal();
+                // Optionally reload the page to update stats
+                window.location.reload();
+            });
+        } else {
+            Swal.fire({
+                title: 'Hata!',
+                text: data.message,
+                icon: 'error',
+                confirmButtonText: 'Tamam'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Hata!',
+            text: 'Geri alma işlemi sırasında bir hata oluştu.',
+            icon: 'error',
+            confirmButtonText: 'Tamam'
+        });
+    });
+}
+
+// Modal dışına tıklandığında kapat
+document.addEventListener('DOMContentLoaded', function() {
+    const repurchaseModal = document.getElementById('repurchaseModal');
+    if (repurchaseModal) {
+        repurchaseModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRepurchaseModal();
+            }
+        });
+    }
+});
 </script>
 @endsection

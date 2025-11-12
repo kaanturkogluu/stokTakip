@@ -15,6 +15,10 @@ use App\Models\Storage as StorageModel;
 use App\Models\Customer;
 use App\Models\CustomerPayment;
 use App\Models\CustomerRecord;
+use App\Models\Admin;
+use App\Models\AuditLog;
+use App\Helpers\AuditHelper;
+use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
 {
@@ -30,15 +34,48 @@ class AdminController extends Controller
             'password' => 'required',
         ]);
 
-        // Basit admin kontrolü (gerçek uygulamada veritabanı kullanılmalı)
-        if ($credentials['email'] === 'admin@macrotech.com' && $credentials['password'] === 'admin123') {
-            session(['admin_logged_in' => true]);
-            return redirect()->route('admin.dashboard');
+        // Veritabanından admin bul
+        $admin = Admin::where('email', $credentials['email'])->first();
+
+        // Admin kontrolü
+        if (!$admin) {
+            return back()->withErrors([
+                'email' => 'Giriş bilgileri hatalı.',
+            ]);
         }
 
-        return back()->withErrors([
-            'email' => 'Giriş bilgileri hatalı.',
+        // Aktif kontrolü
+        if (!$admin->is_active) {
+            return back()->withErrors([
+                'email' => 'Hesabınız devre dışı bırakılmış.',
+            ]);
+        }
+
+        // Şifre kontrolü
+        if (!Hash::check($credentials['password'], $admin->password)) {
+            return back()->withErrors([
+                'email' => 'Giriş bilgileri hatalı.',
+            ]);
+        }
+
+        // Login başarılı - session'a kaydet
+        session([
+            'admin_logged_in' => true,
+            'admin_id' => $admin->id,
+            'admin_name' => $admin->name,
+            'admin_role' => $admin->role
         ]);
+
+        // Son giriş bilgilerini güncelle
+        $admin->update([
+            'last_login_at' => now(),
+            'last_login_ip' => $request->ip()
+        ]);
+
+        // Audit log
+        AuditHelper::logLogin($admin);
+
+        return redirect()->route('admin.dashboard');
     }
 
     public function dashboard()
@@ -64,74 +101,88 @@ class AdminController extends Controller
             return redirect()->route('admin.login');
         }
 
-        // Get all sold phones with their customer records
-        $query = Phone::with(['brand', 'phoneModel', 'storage', 'customerRecords.customer'])
-            ->where('is_sold', true)
-            ->orderBy('sold_at', 'desc');
+        // Get all customer records (sales) with phone and customer info
+        // This way we can see all sales history, even if a phone was sold multiple times
+        $query = CustomerRecord::with(['phone.brand', 'phone.phoneModel', 'phone.storage', 'customer'])
+            ->orderBy('created_at', 'desc');
 
         // Search functionality
         if ($request->filled('search')) {
             $searchTerm = $request->get('search');
             $query->where(function($q) use ($searchTerm) {
-                $q->where('name', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('stock_serial', 'LIKE', "%{$searchTerm}%")
-                  ->orWhereHas('customerRecords.customer', function($customerQuery) use ($searchTerm) {
-                      $customerQuery->where('name', 'LIKE', "%{$searchTerm}%")
-                                   ->orWhere('surname', 'LIKE', "%{$searchTerm}%");
-                  });
+                $q->whereHas('phone', function($phoneQuery) use ($searchTerm) {
+                    $phoneQuery->where('name', 'LIKE', "%{$searchTerm}%")
+                               ->orWhere('stock_serial', 'LIKE', "%{$searchTerm}%");
+                })
+                ->orWhereHas('customer', function($customerQuery) use ($searchTerm) {
+                    // Split search term by spaces
+                    $searchParts = preg_split('/\s+/', trim($searchTerm));
+                    
+                    if (count($searchParts) > 1) {
+                        // If multiple words, search for first word in name and rest in surname
+                        $firstName = $searchParts[0];
+                        $lastName = implode(' ', array_slice($searchParts, 1));
+                        
+                        $customerQuery->where(function($subQ) use ($firstName, $lastName) {
+                            $subQ->where('name', 'LIKE', "%{$firstName}%")
+                                 ->where('surname', 'LIKE', "%{$lastName}%");
+                        })
+                        // Also search for full name concatenated
+                        ->orWhereRaw("CONCAT(name, ' ', surname) LIKE ?", ["%{$searchTerm}%"])
+                        // Also search in individual fields
+                        ->orWhere('name', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('surname', 'LIKE', "%{$searchTerm}%");
+                    } else {
+                        // Single word - search in all fields
+                        $customerQuery->where('name', 'LIKE', "%{$searchTerm}%")
+                                     ->orWhere('surname', 'LIKE', "%{$searchTerm}%")
+                                     ->orWhereRaw("CONCAT(name, ' ', surname) LIKE ?", ["%{$searchTerm}%"]);
+                    }
+                });
             });
         }
 
-        // Date filter
+        // Date filter - use created_at (sale date) instead of sold_at
         if ($request->filled('date_filter')) {
             $dateFilter = $request->get('date_filter');
             switch ($dateFilter) {
                 case 'today':
-                    $query->whereDate('sold_at', today());
+                    $query->whereDate('created_at', today());
                     break;
                 case 'yesterday':
-                    $query->whereDate('sold_at', today()->subDay());
+                    $query->whereDate('created_at', today()->subDay());
                     break;
                 case 'this_week':
-                    $query->whereBetween('sold_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                    $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
                     break;
                 case 'this_month':
-                    $query->whereMonth('sold_at', now()->month)
-                          ->whereYear('sold_at', now()->year);
+                    $query->whereMonth('created_at', now()->month)
+                          ->whereYear('created_at', now()->year);
                     break;
                 case 'last_month':
-                    $query->whereMonth('sold_at', now()->subMonth()->month)
-                          ->whereYear('sold_at', now()->subMonth()->year);
+                    $query->whereMonth('created_at', now()->subMonth()->month)
+                          ->whereYear('created_at', now()->subMonth()->year);
                     break;
             }
         }
 
         $sales = $query->get();
 
-        // Group sales by date
+        // Group sales by date (using created_at as sale date)
         $groupedSales = $sales->groupBy(function($sale) {
-            return $sale->sold_at->format('Y-m-d');
+            return $sale->created_at->format('Y-m-d');
         });
 
-        // Calculate totals
+        // Calculate totals from all customer records
         $totalSales = $sales->count();
         $totalRevenue = $sales->sum(function($sale) {
-            return $sale->sale_price - $sale->purchase_price;
+            if ($sale->phone && $sale->phone->purchase_price) {
+                return $sale->sale_price - $sale->phone->purchase_price;
+            }
+            return $sale->sale_price; // If no purchase price, just use sale price
         });
-        $totalPaid = $sales->sum(function($sale) {
-            return $sale->customerRecords->sum('paid_amount');
-        });
-        // Calculate total debt from all sales (not filtered) - using remaining debt calculation
-        $totalDebt = Phone::where('is_sold', true)
-            ->with('customerRecords')
-            ->get()
-            ->sum(function($sale) {
-                $customerRecord = $sale->customerRecords->first();
-                if ($customerRecord) {
-                    return $sale->sale_price - $customerRecord->paid_amount;
-                }
-                return $sale->sale_price; // If no customer record, full amount is debt
-            });
+        $totalPaid = $sales->sum('paid_amount');
+        $totalDebt = $sales->sum('remaining_debt');
 
         return view('admin.sales.index', compact('groupedSales', 'totalSales', 'totalRevenue', 'totalPaid', 'totalDebt'));
     }
@@ -236,7 +287,15 @@ class AdminController extends Controller
 
     public function logout()
     {
-        session()->forget('admin_logged_in');
+        $adminId = session('admin_id');
+        if ($adminId) {
+            $admin = Admin::find($adminId);
+            if ($admin) {
+                AuditHelper::logLogout($admin);
+            }
+        }
+
+        session()->forget(['admin_logged_in', 'admin_id', 'admin_name', 'admin_role']);
         return redirect()->route('admin.login');
     }
 
@@ -324,7 +383,8 @@ class AdminController extends Controller
         // Her seri numarası için ayrı kayıt oluştur
         foreach ($stockSerials as $serialNumber) {
             $phoneData['stock_serial'] = $serialNumber;
-            Phone::create($phoneData);
+            $phone = Phone::create($phoneData);
+            AuditHelper::logCreate($phone);
             $createdCount++;
         }
 
@@ -416,7 +476,9 @@ class AdminController extends Controller
             $phoneData['sold_at'] = now();
         }
 
+        $oldValues = $phone->toArray();
         $phone->update($phoneData);
+        AuditHelper::logUpdate($phone, $oldValues);
 
         return redirect()->route('admin.phones.show', $phone)->with('success', 'Telefon başarıyla güncellendi!');
     }
@@ -430,6 +492,7 @@ class AdminController extends Controller
         try {
             $phoneName = $phone->name;
             $phone->delete();
+            AuditHelper::logDelete($phone, $phoneName . ' telefonu silindi');
             
             return redirect()->route('admin.phones.index')->with('success', "{$phoneName} başarıyla silindi!");
         } catch (\Exception $e) {
@@ -790,6 +853,7 @@ class AdminController extends Controller
                 'serial_number' => 'required|string',
                 'sale_price' => 'required|numeric|min:0',
                 'sale_note' => 'nullable|string|max:1000',
+                'sale_date' => 'nullable|date',
                 'add_to_customers' => 'nullable|boolean',
                 'customer_id' => 'nullable|exists:customers,id',
                 'customer_name' => 'nullable|string|max:255',
@@ -857,24 +921,35 @@ class AdminController extends Controller
         }
 
         // Calculate payment and debt
-        $salePrice = $request->sale_price;
-        $paymentAmount = $request->payment_option === 'partial' ? $request->partial_amount : $salePrice;
-        $remainingDebt = $salePrice - $paymentAmount;
+        $salePrice = floatval($request->sale_price);
+        $paymentAmount = $request->payment_option === 'partial' ? floatval($request->partial_amount) : $salePrice;
+        $remainingDebt = max(0, $salePrice - $paymentAmount); // Ensure remaining_debt is never negative
 
 		// Create customer record (even if customer is not selected) to track payments/debt
 		$paymentStatus = 'paid';
-		if ($remainingDebt > 0) {
+		if ($remainingDebt > 0.01) { // Use small threshold for floating point comparison
 			$paymentStatus = $paymentAmount > 0 ? 'partial' : 'pending';
+		} else {
+			// If remaining debt is 0 or very close to 0, mark as paid
+			$remainingDebt = 0;
+			$paymentStatus = 'paid';
 		}
 		
-		CustomerRecord::create([
+		// Determine sale date - use provided date or current date
+		$saleDate = $request->filled('sale_date') 
+			? \Carbon\Carbon::parse($request->sale_date) 
+			: now();
+		
+		$customerRecord = CustomerRecord::create([
 			'customer_id' => $customer ? $customer->id : null,
 			'phone_id' => $phone->id,
 			'sale_price' => $salePrice,
 			'paid_amount' => $paymentAmount,
-			'remaining_debt' => $remainingDebt,
+			'remaining_debt' => round($remainingDebt, 2), // Round to 2 decimal places
 			'payment_status' => $paymentStatus,
-			'notes' => $request->sale_note
+			'notes' => $request->sale_note,
+			'created_at' => $saleDate, // Set custom sale date
+			'updated_at' => $saleDate
 		]);
 		
 		// Update customer total debt and create payment record only when a customer exists
@@ -896,7 +971,7 @@ class AdminController extends Controller
         $updateData = [
             'is_sold' => true,
             'sale_price' => $salePrice,
-            'sold_at' => now()
+            'sold_at' => $saleDate // Use custom sale date or current date
         ];
         
 		// Add sale note if provided (append to existing notes instead of overwriting)
@@ -933,6 +1008,9 @@ class AdminController extends Controller
         // Commit transaction
         \DB::commit();
 
+        // Audit log
+        AuditHelper::logSale($phone, $salePrice, $customer);
+
         return response()->json([
             'success' => true,
             'message' => $message
@@ -945,6 +1023,89 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Satış işlemi sırasında bir hata oluştu: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function repurchasePhone(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        try {
+            \DB::beginTransaction();
+            
+            $request->validate([
+                'phone_id' => 'required|exists:phones,id',
+                'repurchase_price' => 'required|numeric|min:0',
+                'repurchase_note' => 'nullable|string|max:1000'
+            ]);
+
+            $phone = Phone::with(['brand', 'phoneModel', 'storage'])->find($request->phone_id);
+
+            if (!$phone) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cihaz bulunamadı'
+                ]);
+            }
+
+            if (!$phone->is_sold) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bu cihaz satılmamış, geri alınamaz'
+                ]);
+            }
+
+            // Get the customer record for this sale
+            $customerRecord = $phone->customerRecords()->where('phone_id', $phone->id)->first();
+            
+            // Update phone - mark as not sold and add repurchase info
+            $updateData = [
+                'is_sold' => false,
+                'repurchased_at' => now(),
+                'repurchase_price' => $request->repurchase_price,
+                'sale_price' => null, // Clear sale price
+                'sold_at' => null // Clear sold_at
+            ];
+            
+            // Add repurchase note if provided
+            if ($request->filled('repurchase_note')) {
+                $existingNotes = trim((string) $phone->notes);
+                $newNote = trim($request->repurchase_note);
+                $updateData['notes'] = $existingNotes !== ''
+                    ? $existingNotes . "\n[Geri Alındı: " . now()->format('d.m.Y H:i') . "] " . $newNote
+                    : "[Geri Alındı: " . now()->format('d.m.Y H:i') . "] " . $newNote;
+            } else {
+                $existingNotes = trim((string) $phone->notes);
+                $updateData['notes'] = $existingNotes !== ''
+                    ? $existingNotes . "\n[Geri Alındı: " . now()->format('d.m.Y H:i') . "]"
+                    : "[Geri Alındı: " . now()->format('d.m.Y H:i') . "]";
+            }
+            
+            $phone->update($updateData);
+            
+            // If there's a customer record with remaining debt, we might want to handle it
+            // For now, we'll keep the customer record for history but mark it appropriately
+            // The customer's debt will be recalculated automatically via the total_debt accessor
+            
+            \DB::commit();
+
+            // Audit log
+            AuditHelper::logRepurchase($phone, $request->repurchase_price);
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$phone->name} cihazı başarıyla geri alındı. Geri alma fiyatı: " . number_format($request->repurchase_price, 2) . " ₺"
+            ]);
+            
+        } catch (\Exception $e) {
+            \DB::rollback();
+            Log::error('Repurchase error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Geri alma işlemi sırasında bir hata oluştu: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -1197,5 +1358,226 @@ class AdminController extends Controller
             'topSellingPhones',
             'detailedReport'
         ));
+    }
+
+    // Admin Management
+    public function admins(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $currentAdmin = Admin::find(session('admin_id'));
+        if (!$currentAdmin || !$currentAdmin->isAdmin()) {
+            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        }
+
+        $query = Admin::query();
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Role filter
+        if ($request->filled('role_filter')) {
+            $query->where('role', $request->role_filter);
+        }
+
+        // Status filter
+        if ($request->filled('status_filter')) {
+            $query->where('is_active', $request->status_filter === 'active');
+        }
+
+        $admins = $query->orderBy('created_at', 'desc')->paginate(15);
+
+        return view('admin.admins.index', compact('admins'));
+    }
+
+    public function createAdmin()
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $currentAdmin = Admin::find(session('admin_id'));
+        if (!$currentAdmin || !$currentAdmin->isAdmin()) {
+            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        }
+
+        return view('admin.admins.create');
+    }
+
+    public function storeAdmin(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $currentAdmin = Admin::find(session('admin_id'));
+        if (!$currentAdmin || !$currentAdmin->isAdmin()) {
+            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:admins,email',
+            'password' => 'required|string|min:6|confirmed',
+            'role' => 'required|in:super_admin,admin,manager,staff',
+            'permissions' => 'nullable|array',
+            'is_active' => 'nullable|boolean'
+        ]);
+
+        $admin = Admin::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => $request->password,
+            'role' => $request->role,
+            'permissions' => $request->permissions ?? [],
+            'is_active' => $request->has('is_active') ? true : false
+        ]);
+
+        AuditHelper::logCreate($admin, $admin->name . ' admin kullanıcısı oluşturuldu');
+
+        return redirect()->route('admin.admins.index')->with('success', 'Admin kullanıcısı başarıyla oluşturuldu.');
+    }
+
+    public function editAdmin(Admin $admin)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $currentAdmin = Admin::find(session('admin_id'));
+        if (!$currentAdmin || !$currentAdmin->isAdmin()) {
+            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        }
+
+        return view('admin.admins.edit', compact('admin'));
+    }
+
+    public function updateAdmin(Request $request, Admin $admin)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $currentAdmin = Admin::find(session('admin_id'));
+        if (!$currentAdmin || !$currentAdmin->isAdmin()) {
+            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:admins,email,' . $admin->id,
+            'password' => 'nullable|string|min:6|confirmed',
+            'role' => 'required|in:super_admin,admin,manager,staff',
+            'permissions' => 'nullable|array',
+            'is_active' => 'nullable|boolean'
+        ]);
+
+        $oldValues = $admin->toArray();
+        
+        $updateData = [
+            'name' => $request->name,
+            'email' => $request->email,
+            'role' => $request->role,
+            'permissions' => $request->permissions ?? [],
+            'is_active' => $request->has('is_active') ? true : false
+        ];
+
+        if ($request->filled('password')) {
+            $updateData['password'] = $request->password;
+        }
+
+        $admin->update($updateData);
+
+        AuditHelper::logUpdate($admin, $oldValues, $admin->name . ' admin kullanıcısı güncellendi');
+
+        return redirect()->route('admin.admins.index')->with('success', 'Admin kullanıcısı başarıyla güncellendi.');
+    }
+
+    public function destroyAdmin(Admin $admin)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $currentAdmin = Admin::find(session('admin_id'));
+        if (!$currentAdmin || !$currentAdmin->isSuperAdmin()) {
+            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        }
+
+        // Kendi hesabını silemez
+        if ($admin->id === $currentAdmin->id) {
+            return redirect()->route('admin.admins.index')->with('error', 'Kendi hesabınızı silemezsiniz.');
+        }
+
+        $adminName = $admin->name;
+        $admin->delete();
+
+        AuditHelper::logDelete($admin, $adminName . ' admin kullanıcısı silindi');
+
+        return redirect()->route('admin.admins.index')->with('success', 'Admin kullanıcısı başarıyla silindi.');
+    }
+
+    // Audit Logs
+    public function auditLogs(Request $request)
+    {
+        if (!session('admin_logged_in')) {
+            return redirect()->route('admin.login');
+        }
+
+        $currentAdmin = Admin::find(session('admin_id'));
+        if (!$currentAdmin || !$currentAdmin->isAdmin()) {
+            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        }
+
+        $query = AuditLog::with('admin')->orderBy('created_at', 'desc');
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('description', 'like', "%{$search}%")
+                  ->orWhereHas('admin', function($adminQuery) use ($search) {
+                      $adminQuery->where('name', 'like', "%{$search}%")
+                                 ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Action filter
+        if ($request->filled('action_filter')) {
+            $query->where('action', $request->action_filter);
+        }
+
+        // Date filter
+        if ($request->filled('date_filter')) {
+            $dateFilter = $request->get('date_filter');
+            switch ($dateFilter) {
+                case 'today':
+                    $query->whereDate('created_at', today());
+                    break;
+                case 'yesterday':
+                    $query->whereDate('created_at', today()->subDay());
+                    break;
+                case 'this_week':
+                    $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                    break;
+                case 'this_month':
+                    $query->whereMonth('created_at', now()->month)
+                          ->whereYear('created_at', now()->year);
+                    break;
+            }
+        }
+
+        $logs = $query->paginate(50);
+
+        return view('admin.audit-logs.index', compact('logs'));
     }
 }
