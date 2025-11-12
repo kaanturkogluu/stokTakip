@@ -118,8 +118,9 @@
                             <span><i class="fas fa-shopping-cart mr-1"></i>{{ $sales->count() }} Satış</span>
                             <span><i class="fas fa-lira-sign mr-1"></i>{{ number_format($sales->sum(function($sale) { 
                                 $phone = $sale->phone;
-                                $purchasePrice = $phone ? $phone->purchase_price : 0;
-                                return $purchasePrice > 0 ? $sale->sale_price - $purchasePrice : $sale->sale_price;
+                                $purchasePrice = $phone ? ($phone->purchase_price ?? 0) : 0;
+                                $salePrice = $sale->sale_price ?? 0;
+                                return $purchasePrice > 0 ? $salePrice - $purchasePrice : $salePrice;
                             }), 2) }} ₺ Kar</span>
                         </div>
                     </div>
@@ -162,12 +163,13 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             @foreach($sales as $sale)
                                 @php
-                                    // $sale is now a CustomerRecord, not a Phone
+                                    // $sale can be either a CustomerRecord or a Phone without CustomerRecord
                                     $phone = $sale->phone;
-                                    $paidAmount = $sale->paid_amount;
-                                    $remainingDebt = $sale->remaining_debt;
+                                    $paidAmount = $sale->paid_amount ?? 0;
+                                    $remainingDebt = $sale->remaining_debt ?? 0;
                                     $isFullyPaid = $remainingDebt <= 0;
-                                    $purchasePrice = $phone ? $phone->purchase_price : 0;
+                                    $purchasePrice = $phone ? ($phone->purchase_price ?? 0) : 0;
+                                    $isOldSale = $sale->type === 'phone_only';
                                 @endphp
                                 @if($phone)
                                 <tr class="hover:bg-gray-50">
@@ -212,7 +214,12 @@
                                                 <div class="text-sm text-gray-500">{{ $sale->customer->phone }}</div>
                                             @endif
                                         @else
-                                            <span class="text-sm text-gray-400">Müşteri bilgisi yok</span>
+                                            <span class="text-sm text-gray-400">
+                                                Müşteri bilgisi yok
+                                                @if($isOldSale)
+                                                    <span class="text-xs text-orange-500 block mt-1">(Eski satış kaydı)</span>
+                                                @endif
+                                            </span>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -247,7 +254,7 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $sale->created_at->format('H:i') }}
+                                        {{ ($sale->sold_at ?? $sale->created_at)->format('H:i') }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         @if($phone->is_sold)

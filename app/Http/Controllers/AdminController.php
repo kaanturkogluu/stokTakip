@@ -102,26 +102,27 @@ class AdminController extends Controller
         }
 
         // Get all customer records (sales) with phone and customer info
-        // This way we can see all sales history, even if a phone was sold multiple times
-        $query = CustomerRecord::with(['phone.brand', 'phone.phoneModel', 'phone.storage', 'customer'])
-            ->orderBy('created_at', 'desc');
+        $customerRecordsQuery = CustomerRecord::with(['phone.brand', 'phone.phoneModel', 'phone.storage', 'customer']);
+
+        // Get phones that are sold but don't have CustomerRecord (old sales)
+        $phonesWithoutRecordQuery = Phone::with(['brand', 'phoneModel', 'storage'])
+            ->where('is_sold', true)
+            ->whereDoesntHave('customerRecords');
 
         // Search functionality
         if ($request->filled('search')) {
             $searchTerm = $request->get('search');
-            $query->where(function($q) use ($searchTerm) {
-                // Search in phone name and serial - this will show all sales (with or without customer)
+            
+            // Search in CustomerRecords
+            $customerRecordsQuery->where(function($q) use ($searchTerm) {
                 $q->whereHas('phone', function($phoneQuery) use ($searchTerm) {
                     $phoneQuery->where('name', 'LIKE', "%{$searchTerm}%")
                                ->orWhere('stock_serial', 'LIKE', "%{$searchTerm}%");
                 })
-                // Search in customer name - only if customer exists
                 ->orWhereHas('customer', function($customerQuery) use ($searchTerm) {
-                    // Split search term by spaces
                     $searchParts = preg_split('/\s+/', trim($searchTerm));
                     
                     if (count($searchParts) > 1) {
-                        // If multiple words, search for first word in name and rest in surname
                         $firstName = $searchParts[0];
                         $lastName = implode(' ', array_slice($searchParts, 1));
                         
@@ -129,62 +130,114 @@ class AdminController extends Controller
                             $subQ->where('name', 'LIKE', "%{$firstName}%")
                                  ->where('surname', 'LIKE', "%{$lastName}%");
                         })
-                        // Also search for full name concatenated
                         ->orWhereRaw("CONCAT(name, ' ', surname) LIKE ?", ["%{$searchTerm}%"])
-                        // Also search in individual fields
                         ->orWhere('name', 'LIKE', "%{$searchTerm}%")
                         ->orWhere('surname', 'LIKE', "%{$searchTerm}%");
                     } else {
-                        // Single word - search in all fields
                         $customerQuery->where('name', 'LIKE', "%{$searchTerm}%")
                                      ->orWhere('surname', 'LIKE', "%{$searchTerm}%")
                                      ->orWhereRaw("CONCAT(name, ' ', surname) LIKE ?", ["%{$searchTerm}%"]);
                     }
                 });
             });
+
+            // Search in Phones without CustomerRecord
+            $phonesWithoutRecordQuery->where(function($q) use ($searchTerm) {
+                $q->where('name', 'LIKE', "%{$searchTerm}%")
+                  ->orWhere('stock_serial', 'LIKE', "%{$searchTerm}%");
+            });
         }
 
-        // Date filter - use created_at (sale date) instead of sold_at
+        // Date filter for CustomerRecords
         if ($request->filled('date_filter')) {
             $dateFilter = $request->get('date_filter');
             switch ($dateFilter) {
                 case 'today':
-                    $query->whereDate('created_at', today());
+                    $customerRecordsQuery->whereDate('created_at', today());
+                    $phonesWithoutRecordQuery->whereDate('sold_at', today());
                     break;
                 case 'yesterday':
-                    $query->whereDate('created_at', today()->subDay());
+                    $customerRecordsQuery->whereDate('created_at', today()->subDay());
+                    $phonesWithoutRecordQuery->whereDate('sold_at', today()->subDay());
                     break;
                 case 'this_week':
-                    $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                    $customerRecordsQuery->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                    $phonesWithoutRecordQuery->whereBetween('sold_at', [now()->startOfWeek(), now()->endOfWeek()]);
                     break;
                 case 'this_month':
-                    $query->whereMonth('created_at', now()->month)
+                    $customerRecordsQuery->whereMonth('created_at', now()->month)
                           ->whereYear('created_at', now()->year);
+                    $phonesWithoutRecordQuery->whereMonth('sold_at', now()->month)
+                          ->whereYear('sold_at', now()->year);
                     break;
                 case 'last_month':
-                    $query->whereMonth('created_at', now()->subMonth()->month)
+                    $customerRecordsQuery->whereMonth('created_at', now()->subMonth()->month)
                           ->whereYear('created_at', now()->subMonth()->year);
+                    $phonesWithoutRecordQuery->whereMonth('sold_at', now()->subMonth()->month)
+                          ->whereYear('sold_at', now()->subMonth()->year);
                     break;
             }
         }
 
-        $sales = $query->get();
+        $customerRecords = $customerRecordsQuery->orderBy('created_at', 'desc')->get();
+        $phonesWithoutRecord = $phonesWithoutRecordQuery->orderBy('sold_at', 'desc')->get();
 
-        // Group sales by date (using created_at as sale date)
-        $groupedSales = $sales->groupBy(function($sale) {
-            return $sale->created_at->format('Y-m-d');
+        // Combine and convert phones without record to a format similar to CustomerRecord
+        $allSales = collect();
+        
+        // Add CustomerRecords
+        foreach ($customerRecords as $record) {
+            $allSales->push((object)[
+                'id' => 'cr_' . $record->id,
+                'type' => 'customer_record',
+                'customer_record' => $record,
+                'phone' => $record->phone,
+                'customer' => $record->customer,
+                'sale_price' => $record->sale_price,
+                'paid_amount' => $record->paid_amount,
+                'remaining_debt' => $record->remaining_debt,
+                'payment_status' => $record->payment_status,
+                'created_at' => $record->created_at,
+                'sold_at' => $record->created_at
+            ]);
+        }
+
+        // Add Phones without CustomerRecord
+        foreach ($phonesWithoutRecord as $phone) {
+            $allSales->push((object)[
+                'id' => 'phone_' . $phone->id,
+                'type' => 'phone_only',
+                'customer_record' => null,
+                'phone' => $phone,
+                'customer' => null,
+                'sale_price' => $phone->sale_price ?? 0,
+                'paid_amount' => $phone->sale_price ?? 0, // Assume fully paid for old sales
+                'remaining_debt' => 0,
+                'payment_status' => 'paid',
+                'created_at' => $phone->sold_at ?? $phone->created_at,
+                'sold_at' => $phone->sold_at ?? $phone->created_at
+            ]);
+        }
+
+        // Sort by sale date (newest first)
+        $allSales = $allSales->sortByDesc(function($sale) {
+            return $sale->sold_at ? $sale->sold_at->timestamp : 0;
+        })->values();
+
+        // Group sales by date
+        $groupedSales = $allSales->groupBy(function($sale) {
+            return $sale->sold_at ? $sale->sold_at->format('Y-m-d') : $sale->created_at->format('Y-m-d');
         });
 
-        // Calculate totals from all customer records
-        $totalSales = $sales->count();
-        $totalRevenue = $sales->sum(function($sale) {
-            if ($sale->phone && $sale->phone->purchase_price) {
-                return $sale->sale_price - $sale->phone->purchase_price;
-            }
-            return $sale->sale_price; // If no purchase price, just use sale price
+        // Calculate totals
+        $totalSales = $allSales->count();
+        $totalRevenue = $allSales->sum(function($sale) {
+            $phone = $sale->phone;
+            $purchasePrice = $phone ? ($phone->purchase_price ?? 0) : 0;
+            return $purchasePrice > 0 ? $sale->sale_price - $purchasePrice : $sale->sale_price;
         });
-        $totalPaid = $sales->sum('paid_amount');
-        $totalDebt = $sales->sum('remaining_debt');
+        $totalPaid = $allSales->sum('paid_amount');
+        $totalDebt = $allSales->sum('remaining_debt');
 
         return view('admin.sales.index', compact('groupedSales', 'totalSales', 'totalRevenue', 'totalPaid', 'totalDebt'));
     }
