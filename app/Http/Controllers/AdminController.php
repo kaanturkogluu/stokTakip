@@ -1009,22 +1009,43 @@ class AdminController extends Controller
 		}
 		
 		// Determine sale date - use provided date or current date
-		$saleDate = $request->filled('sale_date') 
-			? \Carbon\Carbon::parse($request->sale_date) 
-			: now();
+		if ($request->filled('sale_date')) {
+			// Parse the datetime-local format (YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss)
+			// datetime-local doesn't include timezone, so we parse it as-is without timezone conversion
+			try {
+				$dateString = $request->sale_date;
+				// Remove timezone conversion - use the date as provided by the user
+				if (strlen($dateString) > 16) {
+					// Has seconds: YYYY-MM-DDTHH:mm:ss
+					$saleDate = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i:s', $dateString);
+				} else {
+					// No seconds: YYYY-MM-DDTHH:mm
+					$saleDate = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $dateString);
+				}
+				// Don't convert timezone - use the exact date/time the user selected
+			} catch (\Exception $e) {
+				Log::warning('Failed to parse sale_date: ' . $request->sale_date . ' - ' . $e->getMessage());
+				$saleDate = now();
+			}
+		} else {
+			$saleDate = now();
+		}
 		
 		try {
-			$customerRecord = CustomerRecord::create([
-				'customer_id' => $customer ? $customer->id : null,
-				'phone_id' => $phone->id,
-				'sale_price' => $salePrice,
-				'paid_amount' => $paymentAmount,
-				'remaining_debt' => round($remainingDebt, 2), // Round to 2 decimal places
-				'payment_status' => $paymentStatus,
-				'notes' => $request->sale_note,
-				'created_at' => $saleDate, // Set custom sale date
-				'updated_at' => $saleDate
-			]);
+			// Create the record with custom timestamps
+			// Temporarily disable timestamps to set custom created_at/updated_at
+			$customerRecord = new CustomerRecord();
+			$customerRecord->timestamps = false; // Disable automatic timestamps
+			$customerRecord->customer_id = $customer ? $customer->id : null;
+			$customerRecord->phone_id = $phone->id;
+			$customerRecord->sale_price = $salePrice;
+			$customerRecord->paid_amount = $paymentAmount;
+			$customerRecord->remaining_debt = round($remainingDebt, 2); // Round to 2 decimal places
+			$customerRecord->payment_status = $paymentStatus;
+			$customerRecord->notes = $request->sale_note;
+			$customerRecord->created_at = $saleDate; // Set custom sale date
+			$customerRecord->updated_at = $saleDate;
+			$customerRecord->save();
 		} catch (\Exception $e) {
 			\DB::rollback();
 			Log::error('CustomerRecord creation error: ' . $e->getMessage(), [
