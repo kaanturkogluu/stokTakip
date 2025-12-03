@@ -194,6 +194,7 @@ class AdminController extends Controller
                 'phone' => $record->phone,
                 'customer' => $record->customer,
                 'sale_price' => $record->sale_price,
+                'purchase_price_at_sale' => $record->purchase_price_at_sale, // Satış anındaki alış fiyatı
                 'paid_amount' => $record->paid_amount,
                 'remaining_debt' => $record->remaining_debt,
                 'payment_status' => $record->payment_status,
@@ -231,10 +232,32 @@ class AdminController extends Controller
 
         // Calculate totals
         $totalSales = $allSales->count();
+        // Toplam kar = (Satış Fiyatı - Alış Fiyatı) - Borçlar değil, sadece kar hesaplanmalı
+        // Satış anındaki purchase_price kullanılmalı (geri alınmış telefonlar için önemli)
+        // Geri alınmış telefonlar için kar hesaplanmaz (0 TL)
         $totalRevenue = $allSales->sum(function($sale) {
+            // Eğer telefon geri alınmışsa (is_sold = false), kar hesaplama
             $phone = $sale->phone;
-            $purchasePrice = $phone ? ($phone->purchase_price ?? 0) : 0;
-            return $purchasePrice > 0 ? $sale->sale_price - $purchasePrice : $sale->sale_price;
+            if ($phone && !$phone->is_sold) {
+                return 0; // Geri alınmış telefonlar için kar 0
+            }
+            
+            $salePrice = $sale->sale_price ?? 0;
+            
+            // Önce satış anındaki purchase_price'ı kontrol et (CustomerRecord'da kayıtlı)
+            $purchasePrice = $sale->purchase_price_at_sale ?? null;
+            
+            // Eğer satış anındaki purchase_price yoksa, telefonun mevcut purchase_price'ını kullan
+            if ($purchasePrice === null) {
+                $purchasePrice = $phone ? ($phone->purchase_price ?? 0) : 0;
+            }
+            
+            // Kar = Satış Fiyatı - Alış Fiyatı (sadece bu, borçlar dahil değil)
+            if ($purchasePrice > 0 && $salePrice > 0) {
+                return $salePrice - $purchasePrice;
+            }
+            // Eğer alış fiyatı yoksa veya 0 ise, kar hesaplanamaz (0 döndür)
+            return 0;
         });
         $totalPaid = $allSales->sum('paid_amount');
         $totalDebt = $allSales->sum('remaining_debt');
@@ -1039,6 +1062,7 @@ class AdminController extends Controller
 			$customerRecord->customer_id = $customer ? $customer->id : null;
 			$customerRecord->phone_id = $phone->id;
 			$customerRecord->sale_price = $salePrice;
+			$customerRecord->purchase_price_at_sale = $phone->purchase_price ?? 0; // Satış anındaki alış fiyatını kaydet
 			$customerRecord->paid_amount = $paymentAmount;
 			$customerRecord->remaining_debt = round($remainingDebt, 2); // Round to 2 decimal places
 			$customerRecord->payment_status = $paymentStatus;
@@ -1197,10 +1221,12 @@ class AdminController extends Controller
             $customerRecord = $phone->customerRecords()->where('phone_id', $phone->id)->first();
             
             // Update phone - mark as not sold and add repurchase info
+            // Update purchase_price with repurchase_price so it reflects the current cost
             $updateData = [
                 'is_sold' => false,
                 'repurchased_at' => now(),
                 'repurchase_price' => $request->repurchase_price,
+                'purchase_price' => $request->repurchase_price, // Update purchase price with repurchase price
                 'sale_price' => null, // Clear sale price
                 'sold_at' => null // Clear sold_at
             ];
@@ -1562,6 +1588,10 @@ class AdminController extends Controller
         $soldPhones = Phone::where('is_sold', true)->count();
         $availablePhones = Phone::where('is_sold', false)->count();
         $featuredPhones = Phone::where('is_featured', true)->count();
+        
+        // Mevcut stoktaki telefonların toplam değeri
+        $stockValue = Phone::where('is_sold', false)
+            ->sum('purchase_price') ?? 0;
 
         // Marka bazında istatistikler
         $brandStats = Phone::join('brands', 'phones.brand_id', '=', 'brands.id')
@@ -1604,7 +1634,8 @@ class AdminController extends Controller
                 brands.name as brand_name,
                 COUNT(*) as total_count,
                 SUM(CASE WHEN phones.is_sold = 1 THEN 1 ELSE 0 END) as sold_count,
-                SUM(CASE WHEN phones.is_sold = 0 THEN 1 ELSE 0 END) as available_count
+                SUM(CASE WHEN phones.is_sold = 0 THEN 1 ELSE 0 END) as available_count,
+                SUM(CASE WHEN phones.is_sold = 0 THEN phones.purchase_price ELSE 0 END) as stock_value
             ')
             ->join('phone_models', 'phones.phone_model_id', '=', 'phone_models.id')
             ->join('brands', 'phones.brand_id', '=', 'brands.id')
@@ -1617,6 +1648,7 @@ class AdminController extends Controller
             'soldPhones', 
             'availablePhones',
             'featuredPhones',
+            'stockValue',
             'brandStats',
             'conditionStats',
             'originStats',

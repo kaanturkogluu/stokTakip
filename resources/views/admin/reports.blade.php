@@ -62,6 +62,34 @@
         </div>
     </div>
 
+    <!-- Stock Value Card -->
+    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-lg p-6 mb-8 text-white">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="p-4 rounded-full bg-white bg-opacity-20">
+                    <i class="fas fa-coins text-3xl"></i>
+                </div>
+                <div class="ml-6">
+                    <p class="text-sm font-medium text-indigo-100">Mevcut Stok Değeri</p>
+                    <p class="text-3xl font-bold mt-1">{{ number_format($stockValue, 2) }} ₺</p>
+                    <p class="text-sm text-indigo-100 mt-2">
+                        <i class="fas fa-box mr-1"></i>{{ $availablePhones }} adet telefon stokta
+                    </p>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-2xl font-bold text-white opacity-90">
+                    @if($availablePhones > 0)
+                        {{ number_format($stockValue / $availablePhones, 2) }} ₺
+                    @else
+                        0.00 ₺
+                    @endif
+                </div>
+                <p class="text-sm text-indigo-100 mt-1">Ortalama Fiyat</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <!-- Brand Statistics -->
@@ -185,6 +213,7 @@
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Toplam</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satılan</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stokta</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok Değeri</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satış Oranı</th>
                         </tr>
                     </thead>
@@ -207,6 +236,15 @@
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                         {{ $report->available_count }}
                                     </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    @if($report->stock_value > 0)
+                                        <span class="font-semibold text-indigo-600">
+                                            {{ number_format($report->stock_value, 2) }} ₺
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     @if($report->total_count > 0)

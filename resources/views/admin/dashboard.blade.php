@@ -1020,6 +1020,10 @@ function displayRepurchasePhoneInfo(phone) {
     const saleDate = phone.sold_at ? new Date(phone.sold_at).toLocaleDateString('tr-TR') : 'Bilinmiyor';
     const salePrice = phone.sale_price ? parseFloat(phone.sale_price).toFixed(2) : '0.00';
     
+    // Get current purchase price (which should be updated after repurchase)
+    // If phone was repurchased before, use repurchase_price, otherwise use purchase_price
+    const currentPrice = phone.repurchase_price ? parseFloat(phone.repurchase_price) : (phone.purchase_price ? parseFloat(phone.purchase_price) : 0);
+    
     phoneDetails.innerHTML = `
         <div class="text-sm">
             <div class="font-bold text-lg text-gray-900 mb-2">${phone.name}</div>
@@ -1029,9 +1033,15 @@ function displayRepurchasePhoneInfo(phone) {
             <div class="text-gray-600 mb-1"><strong>Seri No:</strong> ${phone.stock_serial || 'N/A'}</div>
             <div class="text-gray-600 mb-1"><strong>Satış Fiyatı:</strong> <span class="font-semibold text-green-600">${salePrice} ₺</span></div>
             <div class="text-gray-600 mb-1"><strong>Satış Tarihi:</strong> ${saleDate}</div>
-            ${phone.purchase_price ? `<div class="text-gray-600 mb-1"><strong>Alış Fiyatı:</strong> ${parseFloat(phone.purchase_price).toFixed(2)} ₺</div>` : ''}
+            ${phone.purchase_price ? `<div class="text-gray-600 mb-1"><strong>Güncel Alış Fiyatı:</strong> <span class="font-semibold text-blue-600">${parseFloat(phone.purchase_price).toFixed(2)} ₺</span></div>` : ''}
         </div>
     `;
+    
+    // Set repurchase price input to current purchase price as default
+    const repurchasePriceInput = document.getElementById('repurchasePrice');
+    if (repurchasePriceInput && currentPrice > 0) {
+        repurchasePriceInput.value = currentPrice.toFixed(2);
+    }
     
     phoneInfo.classList.remove('hidden');
     document.getElementById('repurchasePriceSection').style.display = 'block';

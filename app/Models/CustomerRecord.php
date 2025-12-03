@@ -10,6 +10,7 @@ class CustomerRecord extends Model
         'customer_id',
         'phone_id',
         'sale_price',
+        'purchase_price_at_sale',
         'paid_amount',
         'remaining_debt',
         'payment_status',
@@ -18,6 +19,7 @@ class CustomerRecord extends Model
 
     protected $casts = [
         'sale_price' => 'decimal:2',
+        'purchase_price_at_sale' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'remaining_debt' => 'decimal:2'
     ];

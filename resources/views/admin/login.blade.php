@@ -31,7 +31,7 @@
                            name="email" 
                            value="{{ old('email') }}"
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 @error('email') border-red-500 @enderror"
-                           placeholder="admin@macrotech.com"
+                          
                            required>
                     @error('email')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -78,15 +78,7 @@
                     Giriş Yap
                 </button>
             </form>
-
-            <!-- Demo Credentials -->
-            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h3 class="text-sm font-medium text-gray-700 mb-2">Demo Giriş Bilgileri:</h3>
-                <p class="text-xs text-gray-600">
-                    <strong>E-posta:</strong> admin@macrotech.com<br>
-                    <strong>Şifre:</strong> admin123
-                </p>
-            </div>
+ 
 
             <!-- Back to Site -->
             <div class="mt-6 text-center">

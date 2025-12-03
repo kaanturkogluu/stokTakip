@@ -118,9 +118,17 @@
                             <span><i class="fas fa-shopping-cart mr-1"></i>{{ $sales->count() }} Satış</span>
                             <span><i class="fas fa-lira-sign mr-1"></i>{{ number_format($sales->sum(function($sale) { 
                                 $phone = $sale->phone;
-                                $purchasePrice = $phone ? ($phone->purchase_price ?? 0) : 0;
+                                // Geri alınmış telefonlar için kar 0
+                                if ($phone && !$phone->is_sold) {
+                                    return 0;
+                                }
+                                // Satış anındaki purchase_price'ı kullan
+                                $purchasePrice = $sale->purchase_price_at_sale ?? null;
+                                if ($purchasePrice === null) {
+                                    $purchasePrice = $phone ? ($phone->purchase_price ?? 0) : 0;
+                                }
                                 $salePrice = $sale->sale_price ?? 0;
-                                return $purchasePrice > 0 ? $salePrice - $purchasePrice : $salePrice;
+                                return ($purchasePrice > 0 && $salePrice > 0) ? $salePrice - $purchasePrice : 0;
                             }), 2) }} ₺ Kar</span>
                         </div>
                     </div>
@@ -168,7 +176,16 @@
                                     $paidAmount = $sale->paid_amount ?? 0;
                                     $remainingDebt = $sale->remaining_debt ?? 0;
                                     $isFullyPaid = $remainingDebt <= 0;
-                                    $purchasePrice = $phone ? ($phone->purchase_price ?? 0) : 0;
+                                    
+                                    // Satış anındaki purchase_price'ı kullan (geri alınmış telefonlar için önemli)
+                                    // Önce satış anındaki purchase_price'ı kontrol et
+                                    $purchasePrice = $sale->purchase_price_at_sale ?? null;
+                                    
+                                    // Eğer satış anındaki purchase_price yoksa, telefonun mevcut purchase_price'ını kullan
+                                    if ($purchasePrice === null) {
+                                        $purchasePrice = $phone ? ($phone->purchase_price ?? 0) : 0;
+                                    }
+                                    
                                     $isOldSale = $sale->type === 'phone_only';
                                 @endphp
                                 @if($phone)
@@ -214,19 +231,28 @@
                                                 <div class="text-sm text-gray-500">{{ $sale->customer->phone }}</div>
                                             @endif
                                         @else
-                                            <span class="text-sm text-gray-400">
-                                                Müşteri bilgisi yok
+                                            <div class="flex flex-col">
+                                                <span class="text-sm text-gray-500 italic">
+                                                    <i class="fas fa-user-slash mr-1"></i>Müşteri bilgisi yok
+                                                </span>
                                                 @if($isOldSale)
-                                                    <span class="text-xs text-orange-500 block mt-1">(Eski satış kaydı)</span>
+                                                    <span class="text-xs text-orange-500 mt-1">(Eski satış kaydı)</span>
+                                                @elseif($sale->type === 'customer_record')
+                                                    <span class="text-xs text-blue-600 mt-1 font-medium">
+                                                        <i class="fas fa-info-circle mr-1"></i>Müşteri seçilmemiş
+                                                    </span>
                                                 @endif
-                                            </span>
+                                            </div>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         <span class="font-medium">{{ number_format($sale->sale_price, 2) }} ₺</span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        @if($purchasePrice > 0)
+                                        @if($phone->is_sold == false)
+                                            {{-- Geri alınmış telefonlar için kar gösterilmez --}}
+                                            <span class="font-medium text-gray-400">0.00 ₺</span>
+                                        @elseif($purchasePrice > 0)
                                             <span class="font-medium text-blue-600">{{ number_format($sale->sale_price - $purchasePrice, 2) }} ₺</span>
                                         @else
                                             <span class="font-medium text-gray-400">-</span>
