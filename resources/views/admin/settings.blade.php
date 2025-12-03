@@ -130,7 +130,7 @@
                         @if($settings['site_logo'])
                             <div class="flex items-center space-x-4">
                                 <div class="flex-shrink-0">
-                                    <img src="{{ $settings['site_logo'] }}" alt="Site Logo" class="h-16 w-auto rounded-lg border border-gray-300" id="current-logo">
+                                    <img src="{{ asset($settings['site_logo']) }}" alt="Site Logo" class="h-16 w-auto rounded-lg border border-gray-300" id="current-logo">
                                 </div>
                                 <div class="text-sm text-gray-600">
                                     <p>Mevcut Logo</p>

@@ -5,7 +5,11 @@
             <!-- Company Info -->
             <div class="lg:col-span-2">
                 <div class="flex items-center mb-4">
-                    <img src="{{ App\Models\Setting::getValue('site_logo') }}" alt="{{ App\Models\Setting::getValue('site_name') }} Logo" class="h-12 w-auto">
+                    @php
+                        $logoUrl = App\Models\Setting::getValue('site_logo');
+                        $logoUrl = $logoUrl ? asset($logoUrl) : asset('/images/logo.svg');
+                    @endphp
+                    <img src="{{ $logoUrl }}" alt="{{ App\Models\Setting::getValue('site_name') }} Logo" class="h-12 w-auto">
                 </div>
                 <p class="text-gray-300 mb-4 leading-relaxed">
                     {{ App\Models\Setting::getValue('site_description') }}

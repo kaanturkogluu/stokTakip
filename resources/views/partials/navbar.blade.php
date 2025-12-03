@@ -6,7 +6,11 @@
             <div class="flex items-center">
                 <div class="flex-shrink-0">
                     <a href="{{ route('home') }}" class="flex items-center">
-                        <img src="{{ App\Models\Setting::getValue('site_logo') }}" alt="{{ App\Models\Setting::getValue('site_name') }} Logo" class="h-14 w-auto">
+                        @php
+                            $logoUrl = App\Models\Setting::getValue('site_logo');
+                            $logoUrl = $logoUrl ? asset($logoUrl) : asset('/images/logo.svg');
+                        @endphp
+                        <img src="{{ $logoUrl }}" alt="{{ App\Models\Setting::getValue('site_name') }} Logo" class="h-14 w-auto">
                     </a>
                 </div>
             </div>

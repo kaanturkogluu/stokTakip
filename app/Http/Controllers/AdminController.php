@@ -1510,30 +1510,61 @@ class AdminController extends Controller
         ]);
 
         try {
+            $file = $request->file('logo');
+            $extension = strtolower($file->getClientOriginalExtension());
+            
+            // Güvenli dosya adı oluştur
+            $fileName = time() . '_' . uniqid() . '.' . $extension;
+            
+            // Storage path'i oluştur
+            $storageDir = storage_path('app/public/logos');
+            if (!file_exists($storageDir)) {
+                mkdir($storageDir, 0755, true);
+            }
+            
+            $filePath = $storageDir . '/' . $fileName;
+            
             // Delete old logo if exists
             $oldLogo = Setting::getValue('site_logo');
-            if ($oldLogo && Storage::disk('public')->exists(str_replace('/storage/', '', $oldLogo))) {
-                Storage::disk('public')->delete(str_replace('/storage/', '', $oldLogo));
+            if ($oldLogo) {
+                // Path'i temizle
+                $oldPath = str_replace(['/storage/', asset('/storage/')], '', $oldLogo);
+                $oldPath = preg_replace('/^https?:\/\/[^\/]+/', '', $oldPath);
+                $oldPath = ltrim($oldPath, '/');
+                
+                if ($oldPath) {
+                    $oldFilePath = storage_path('app/public/' . $oldPath);
+                    if (file_exists($oldFilePath)) {
+                        @unlink($oldFilePath);
+                    }
+                }
             }
 
-            // Store new logo
-            $path = $request->file('logo')->store('logos', 'public');
-            $url = '/storage/' . $path;
+            // Dosyayı doğrudan dosya sistemine kaydet (Laravel Storage bypass)
+            if (!$file->move($storageDir, $fileName)) {
+                // Eğer move başarısız olursa, içeriği kopyala
+                $content = file_get_contents($file->getRealPath());
+                file_put_contents($filePath, $content);
+            }
+            
+            $url = '/storage/logos/' . $fileName;
 
             // Update setting
             Setting::setValue('site_logo', $url);
 
             return response()->json([
                 'success' => true,
-                'url' => $url,
+                'url' => asset($url), // asset() ile tam URL döndür
                 'message' => 'Logo başarıyla yüklendi!'
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Logo upload error: ' . $e->getMessage());
+            Log::error('Logo upload error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Logo yüklenirken bir hata oluştu!'
+                'message' => 'Logo yüklenirken bir hata oluştu: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -1549,30 +1580,61 @@ class AdminController extends Controller
         ]);
 
         try {
+            $file = $request->file('favicon');
+            $extension = strtolower($file->getClientOriginalExtension());
+            
+            // Güvenli dosya adı oluştur
+            $fileName = time() . '_' . uniqid() . '.' . $extension;
+            
+            // Storage path'i oluştur
+            $storageDir = storage_path('app/public/favicons');
+            if (!file_exists($storageDir)) {
+                mkdir($storageDir, 0755, true);
+            }
+            
+            $filePath = $storageDir . '/' . $fileName;
+            
             // Delete old favicon if exists
             $oldFavicon = Setting::getValue('site_favicon');
-            if ($oldFavicon && Storage::disk('public')->exists(str_replace('/storage/', '', $oldFavicon))) {
-                Storage::disk('public')->delete(str_replace('/storage/', '', $oldFavicon));
+            if ($oldFavicon) {
+                // Path'i temizle
+                $oldPath = str_replace(['/storage/', asset('/storage/')], '', $oldFavicon);
+                $oldPath = preg_replace('/^https?:\/\/[^\/]+/', '', $oldPath);
+                $oldPath = ltrim($oldPath, '/');
+                
+                if ($oldPath) {
+                    $oldFilePath = storage_path('app/public/' . $oldPath);
+                    if (file_exists($oldFilePath)) {
+                        @unlink($oldFilePath);
+                    }
+                }
             }
 
-            // Store new favicon
-            $path = $request->file('favicon')->store('favicons', 'public');
-            $url = '/storage/' . $path;
+            // Dosyayı doğrudan dosya sistemine kaydet (Laravel Storage bypass)
+            if (!$file->move($storageDir, $fileName)) {
+                // Eğer move başarısız olursa, içeriği kopyala
+                $content = file_get_contents($file->getRealPath());
+                file_put_contents($filePath, $content);
+            }
+            
+            $url = '/storage/favicons/' . $fileName;
 
             // Update setting
             Setting::setValue('site_favicon', $url);
 
             return response()->json([
                 'success' => true,
-                'url' => $url,
+                'url' => asset($url), // asset() ile tam URL döndür
                 'message' => 'Favicon başarıyla yüklendi!'
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Favicon upload error: ' . $e->getMessage());
+            Log::error('Favicon upload error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Favicon yüklenirken bir hata oluştu!'
+                'message' => 'Favicon yüklenirken bir hata oluştu: ' . $e->getMessage()
             ], 500);
         }
     }

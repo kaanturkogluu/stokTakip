@@ -11,7 +11,11 @@
     <div class="max-w-md w-full mx-4">
         <!-- Logo -->
         <div class="text-center mb-8">
-            <img src="{{ App\Models\Setting::getValue('site_logo', '/images/logo.svg') }}" alt="{{ App\Models\Setting::getValue('site_name', 'Macrotech') }} Logo" class="h-16 w-auto mx-auto mb-4">
+            @php
+                $logoUrl = App\Models\Setting::getValue('site_logo');
+                $logoUrl = $logoUrl ? asset($logoUrl) : asset('/images/logo.svg');
+            @endphp
+            <img src="{{ $logoUrl }}" alt="{{ App\Models\Setting::getValue('site_name', 'Macrotech') }} Logo" class="h-16 w-auto mx-auto mb-4">
             <h1 class="text-2xl font-bold text-white">Admin Panel</h1>
             <p class="text-gray-300 mt-2">{{ App\Models\Setting::getValue('site_name', 'Macrotech') }} Yönetim Paneli</p>
         </div>
