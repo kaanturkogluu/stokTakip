@@ -29,7 +29,7 @@
             <p class="text-sm text-gray-600 mt-1">Stok Seri No: {{ $phone->stock_serial }}</p>
         </div>
         
-        <form method="POST" action="{{ route('admin.phones.update', $phone) }}" class="p-6 space-y-6">
+        <form id="phone-edit-form" method="POST" action="{{ route('admin.phones.update', $phone) }}" class="p-6 space-y-6">
             @csrf
             @method('PUT')
             
@@ -96,9 +96,14 @@
 
                 <!-- Color -->
                 <div>
-                    <label for="color_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-palette mr-2"></i>Renk *
-                    </label>
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="color_id" class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-palette mr-2"></i>Renk *
+                        </label>
+                        <button type="button" id="toggle-all-colors-btn" class="text-xs text-blue-600 hover:text-blue-800 underline flex items-center">
+                            <i class="fas fa-list-ul mr-1"></i><span id="toggle-colors-label">Tüm Renkleri Göster</span>
+                        </button>
+                    </div>
                     <select id="color_id" 
                             name="color_id" 
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('color_id') border-red-500 @enderror"
@@ -332,8 +337,9 @@
                     <i class="fas fa-times mr-2"></i>İptal
                 </a>
                 <button type="submit" 
-                        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">
-                    <i class="fas fa-save mr-2"></i>Güncelle
+                        id="submit-phone-btn"
+                        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 flex items-center">
+                    <i class="fas fa-save mr-2"></i><span>Güncelle</span>
                 </button>
             </div>
         </form>
@@ -345,80 +351,145 @@ document.addEventListener('DOMContentLoaded', function() {
     const brandSelect = document.getElementById('brand_id');
     const modelSelect = document.getElementById('phone_model_id');
     const colorSelect = document.getElementById('color_id');
-    
+    const toggleColorsBtn = document.getElementById('toggle-all-colors-btn');
+    const toggleColorsLabel = document.getElementById('toggle-colors-label');
+    const form = document.getElementById('phone-edit-form');
+    const submitBtn = document.getElementById('submit-phone-btn');
+
+    const allSystemColors = @json($colors);
+    const brandColorsCache = {};
+    let showingAllColors = false;
+
     // Mevcut değerleri sakla
-    const currentModelId = '{{ $phone->phone_model_id }}';
-    const currentColorId = '{{ $phone->color_id }}';
-    
-    // Marka değiştiğinde modelleri ve renkleri güncelle
-    brandSelect.addEventListener('change', function() {
-        const brandId = this.value;
-        
-        // Model yükleme
-        modelSelect.innerHTML = '<option value="">Yükleniyor...</option>';
-        modelSelect.disabled = true;
-        
-        // Renk yükleme
+    const currentModelId = '{{ old('phone_model_id', $phone->phone_model_id) }}';
+    const currentColorId = '{{ old('color_id', $phone->color_id) }}';
+
+    function renderColors(colorsList, selectedId, emptyMessage) {
+        colorSelect.innerHTML = '<option value="">Renk Seçiniz</option>';
+        if (colorsList && colorsList.length > 0) {
+            colorsList.forEach(color => {
+                const opt = document.createElement('option');
+                opt.value = color.id;
+                opt.textContent = color.name;
+                if (String(color.id) === String(selectedId)) {
+                    opt.selected = true;
+                }
+                colorSelect.appendChild(opt);
+            });
+            colorSelect.disabled = false;
+        } else {
+            colorSelect.innerHTML = `<option value="">${emptyMessage || 'Renk bulunamadı'}</option>`;
+        }
+    }
+
+    if (toggleColorsBtn) {
+        toggleColorsBtn.addEventListener('click', function() {
+            showingAllColors = !showingAllColors;
+            const currentSelected = colorSelect.value || currentColorId;
+
+            if (showingAllColors) {
+                renderColors(allSystemColors, currentSelected);
+                toggleColorsLabel.textContent = 'Marka Renklerine Dön';
+            } else {
+                toggleColorsLabel.textContent = 'Tüm Renkleri Göster';
+                const brandId = brandSelect.value;
+                if (brandId && brandColorsCache[brandId]) {
+                    renderColors(brandColorsCache[brandId], currentSelected);
+                } else if (brandId) {
+                    loadColorsForBrand(brandId, currentSelected);
+                } else {
+                    renderColors(allSystemColors, currentSelected);
+                }
+            }
+        });
+    }
+
+    function loadColorsForBrand(brandId, preselectId) {
+        if (!brandId) {
+            renderColors(allSystemColors, preselectId);
+            return;
+        }
+
+        if (brandColorsCache[brandId]) {
+            const list = (brandColorsCache[brandId].length > 0) ? brandColorsCache[brandId] : allSystemColors;
+            renderColors(list, preselectId);
+            return;
+        }
+
         colorSelect.innerHTML = '<option value="">Yükleniyor...</option>';
         colorSelect.disabled = true;
-        
+
+        fetch(`{{ route('admin.phones.colors-by-brand') }}?brand_id=${brandId}`)
+            .then(res => res.json())
+            .then(data => {
+                const colors = data.colors || [];
+                brandColorsCache[brandId] = colors;
+                if (colors.length > 0) {
+                    renderColors(colors, preselectId);
+                } else {
+                    renderColors(allSystemColors, preselectId);
+                }
+            })
+            .catch(() => {
+                renderColors(allSystemColors, preselectId);
+            });
+    }
+
+    brandSelect.addEventListener('change', function() {
+        const brandId = this.value;
+        showingAllColors = false;
+        if (toggleColorsLabel) toggleColorsLabel.textContent = 'Tüm Renkleri Göster';
+
+        modelSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+        modelSelect.disabled = true;
+
         if (brandId) {
-            // Model yükleme
             fetch(`{{ route('admin.phones.models-by-brand') }}?brand_id=${brandId}`)
-                .then(response => response.json())
+                .then(res => res.json())
                 .then(data => {
                     modelSelect.innerHTML = '<option value="">Model Seçiniz</option>';
-                    
                     if (data.models && data.models.length > 0) {
                         data.models.forEach(model => {
-                            const option = document.createElement('option');
-                            option.value = model.id;
-                            option.textContent = model.name;
-                            if (model.id == currentModelId) {
-                                option.selected = true;
+                            const opt = document.createElement('option');
+                            opt.value = model.id;
+                            opt.textContent = model.name;
+                            if (String(model.id) === String(currentModelId)) {
+                                opt.selected = true;
                             }
-                            modelSelect.appendChild(option);
+                            modelSelect.appendChild(opt);
                         });
                         modelSelect.disabled = false;
                     } else {
                         modelSelect.innerHTML = '<option value="">Bu markaya ait model bulunamadı</option>';
                     }
                 })
-                .catch(error => {
-                    console.error('Error:', error);
-                    modelSelect.innerHTML = '<option value="">Hata oluştu</option>';
+                .catch(() => {
+                    modelSelect.innerHTML = '<option value="">Model yüklenirken hata oluştu</option>';
                 });
-            
-            // Renk yükleme
-            fetch(`{{ route('admin.phones.colors-by-brand') }}?brand_id=${brandId}`)
-                .then(response => response.json())
-                .then(data => {
-                    colorSelect.innerHTML = '<option value="">Renk Seçiniz</option>';
-                    
-                    if (data.colors && data.colors.length > 0) {
-                        data.colors.forEach(color => {
-                            const option = document.createElement('option');
-                            option.value = color.id;
-                            option.textContent = color.name;
-                            if (color.id == currentColorId) {
-                                option.selected = true;
-                            }
-                            colorSelect.appendChild(option);
-                        });
-                        colorSelect.disabled = false;
-                    } else {
-                        colorSelect.innerHTML = '<option value="">Bu markaya ait renk bulunamadı</option>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    colorSelect.innerHTML = '<option value="">Hata oluştu</option>';
-                });
+
+            loadColorsForBrand(brandId, currentColorId);
         } else {
             modelSelect.innerHTML = '<option value="">Önce marka seçiniz</option>';
-            colorSelect.innerHTML = '<option value="">Önce marka seçiniz</option>';
+            renderColors(allSystemColors, currentColorId);
         }
     });
+
+    // Çift tıklama / çift form gönderimi engeli
+    let isSubmitting = false;
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+            isSubmitting = true;
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Güncelleniyor...';
+            }
+        });
+    }
 });
 </script>
 @endsection

@@ -62,30 +62,53 @@
         </div>
     </div>
 
-    <!-- Stock Value Card -->
-    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-lg p-6 mb-8 text-white">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center">
-                <div class="p-4 rounded-full bg-white bg-opacity-20">
-                    <i class="fas fa-coins text-3xl"></i>
-                </div>
-                <div class="ml-6">
-                    <p class="text-sm font-medium text-indigo-100">Mevcut Stok Değeri</p>
+    <!-- Stock Value Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Alış Maliyeti -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-blue-100">Mevcut Stok Alış Maliyeti</p>
                     <p class="text-3xl font-bold mt-1">{{ number_format($stockValue, 2) }} ₺</p>
-                    <p class="text-sm text-indigo-100 mt-2">
-                        <i class="fas fa-box mr-1"></i>{{ $availablePhones }} adet telefon stokta
+                    <p class="text-xs text-blue-100 mt-2">
+                        <i class="fas fa-box mr-1"></i>{{ $availablePhones }} adet cihaz (Ort. {{ number_format($avgCost, 2) }} ₺)
                     </p>
                 </div>
-            </div>
-            <div class="text-right">
-                <div class="text-2xl font-bold text-white opacity-90">
-                    @if($availablePhones > 0)
-                        {{ number_format($stockValue / $availablePhones, 2) }} ₺
-                    @else
-                        0.00 ₺
-                    @endif
+                <div class="p-3 rounded-full bg-white bg-opacity-20">
+                    <i class="fas fa-boxes text-2xl"></i>
                 </div>
-                <p class="text-sm text-indigo-100 mt-1">Ortalama Fiyat</p>
+            </div>
+        </div>
+
+        <!-- Beklenen Satış Değeri -->
+        <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-purple-100">Potansiyel Satış Değeri</p>
+                    <p class="text-3xl font-bold mt-1">{{ number_format($stockSaleValue, 2) }} ₺</p>
+                    <p class="text-xs text-purple-100 mt-2">
+                        <i class="fas fa-tag mr-1"></i>Stoktaki cihazların satış etiketleri toplamı
+                    </p>
+                </div>
+                <div class="p-3 rounded-full bg-white bg-opacity-20">
+                    <i class="fas fa-coins text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Beklenen Kâr -->
+        <div class="bg-gradient-to-r from-green-600 to-emerald-700 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-green-100">Beklenen Brüt Kâr</p>
+                    <p class="text-3xl font-bold mt-1">{{ number_format($expectedProfit, 2) }} ₺</p>
+                    <p class="text-xs text-green-100 mt-2">
+                        <i class="fas fa-chart-line mr-1"></i>Satış - Alış farkı
+                    </p>
+                </div>
+                <div class="p-3 rounded-full bg-white bg-opacity-20">
+                    <i class="fas fa-wallet text-2xl"></i>
+                </div>
             </div>
         </div>
     </div>
@@ -213,7 +236,8 @@
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Toplam</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satılan</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stokta</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok Değeri</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alış Maliyeti</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satış Değeri</th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satış Oranı</th>
                         </tr>
                     </thead>
@@ -239,8 +263,17 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     @if($report->stock_value > 0)
-                                        <span class="font-semibold text-indigo-600">
+                                        <span class="font-semibold text-blue-600">
                                             {{ number_format($report->stock_value, 2) }} ₺
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    @if($report->stock_sale_value > 0)
+                                        <span class="font-semibold text-purple-600">
+                                            {{ number_format($report->stock_sale_value, 2) }} ₺
                                         </span>
                                     @else
                                         <span class="text-gray-400">-</span>

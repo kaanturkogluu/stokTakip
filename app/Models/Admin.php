@@ -58,6 +58,17 @@ class Admin extends Authenticatable
         return in_array($this->role, ['super_admin', 'admin', 'manager']);
     }
 
+    public function isStaff()
+    {
+        return $this->role === 'staff';
+    }
+
+    public static function current()
+    {
+        $adminId = session('admin_id');
+        return $adminId ? static::find($adminId) : null;
+    }
+
     // Permission checks
     public function hasPermission($permission)
     {
@@ -66,8 +77,49 @@ class Admin extends Authenticatable
             return true;
         }
 
-        // Check custom permissions
+        // Admin has all permissions except deleting other admins
+        if ($this->role === 'admin') {
+            if ($permission === 'admins.delete') {
+                return false;
+            }
+            return true;
+        }
+
+        // Manager has general operations (phones, sales, customers, payments, reports, data)
+        // Manager cannot manage admins, cannot view audit logs, cannot change store settings
+        if ($this->role === 'manager') {
+            $restrictedForManager = ['admins.manage', 'admins.delete', 'settings.manage', 'audit.view'];
+            if (in_array($permission, $restrictedForManager)) {
+                return false;
+            }
+            return true;
+        }
+
+        // Staff: Strictly restricted to permissions explicitly granted in $this->permissions
+        $forbiddenForStaff = ['admins.manage', 'admins.delete', 'settings.manage', 'audit.view', 'data.manage'];
+        if (in_array($permission, $forbiddenForStaff)) {
+            return false;
+        }
+
         if ($this->permissions && is_array($this->permissions)) {
+            // Implicit view permissions for staff if they have any related action
+            if ($permission === 'customers.view') {
+                return in_array('customers.create', $this->permissions) ||
+                       in_array('customers.update', $this->permissions) ||
+                       in_array('payments.process', $this->permissions);
+            }
+
+            if ($permission === 'phones.view') {
+                return in_array('phones.create', $this->permissions) ||
+                       in_array('phones.update', $this->permissions) ||
+                       in_array('phones.delete', $this->permissions) ||
+                       in_array('sales.create', $this->permissions);
+            }
+
+            if ($permission === 'sales.view') {
+                return in_array('sales.create', $this->permissions);
+            }
+
             return in_array($permission, $this->permissions);
         }
 

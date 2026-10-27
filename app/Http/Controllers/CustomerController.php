@@ -11,8 +11,8 @@ class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('customers.view', $request)) {
+            return $res;
         }
 
         $query = Customer::with('records');
@@ -84,8 +84,8 @@ class CustomerController extends Controller
 
     public function create()
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('customers.create')) {
+            return $res;
         }
 
         return view('admin.customers.create');
@@ -93,8 +93,8 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('customers.create', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -127,8 +127,8 @@ class CustomerController extends Controller
 
     public function show(Customer $customer)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('customers.view')) {
+            return $res;
         }
 
         $customer->load(['payments', 'records.phone.brand', 'records.phone.phoneModel', 'records.phone.storage']);
@@ -137,8 +137,8 @@ class CustomerController extends Controller
 
     public function edit(Customer $customer)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('customers.update')) {
+            return $res;
         }
 
         return view('admin.customers.edit', compact('customer'));
@@ -146,8 +146,8 @@ class CustomerController extends Controller
 
     public function update(Request $request, Customer $customer)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('customers.update', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -185,8 +185,8 @@ class CustomerController extends Controller
 
     public function destroy(Customer $customer)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('customers.delete', request())) {
+            return $res;
         }
 
         $customer->delete();
@@ -198,8 +198,8 @@ class CustomerController extends Controller
     // Payment methods
     public function payment(Customer $customer)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('payments.process')) {
+            return $res;
         }
 
         return view('admin.customers.payment', compact('customer'));
@@ -207,8 +207,8 @@ class CustomerController extends Controller
 
     public function getDebts(Customer $customer)
     {
-        if (!session('admin_logged_in')) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        if ($res = $this->checkPermission('customers.view')) {
+            return $res;
         }
 
         $customer->load(['records.phone.brand', 'records.phone.phoneModel', 'records.phone.storage']);
@@ -274,11 +274,8 @@ class CustomerController extends Controller
 
     public function processPayment(Request $request, Customer $customer)
     {
-        if (!session('admin_logged_in')) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
-            }
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('payments.process', $request)) {
+            return $res;
         }
 
         $request->validate([

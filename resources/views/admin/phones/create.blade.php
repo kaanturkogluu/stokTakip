@@ -19,7 +19,7 @@
             <h3 class="text-lg font-medium text-gray-900">Telefon Bilgileri</h3>
         </div>
         
-        <form method="POST" action="{{ route('admin.phones.store') }}" class="p-6 space-y-6">
+        <form id="phone-create-form" method="POST" action="{{ route('admin.phones.store') }}" class="p-6 space-y-6">
             @csrf
             
             <!-- Basic Information -->
@@ -374,6 +374,7 @@
                     <i class="fas fa-times mr-2"></i>İptal
                 </a>
                 <button type="submit" 
+                        id="submit-phone-btn"
                         class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">
                     <i class="fas fa-save mr-2"></i>Telefonu Kaydet
                 </button>
@@ -383,19 +384,6 @@
 </div>
 
 <script>
-
-    document.addEventListener('submit', function() {
-
-      
-        let serialNumbersInput = document.getElementById('stock_serials_hidden');
-        if (serialNumbersInput.value.length === 0) {
-            event.preventDefault();
-            alert('Lütfen en az bir seri numarası ekleyin.');
-            return false;
-        }
-      
-       
-    });
     function addImageInput() {
         const container = document.getElementById('image-inputs');
         const div = document.createElement('div');
@@ -420,113 +408,135 @@
 
     function updateRemoveButtons() {
         const container = document.getElementById('image-inputs');
+        if (!container) return;
         const inputs = container.querySelectorAll('div');
-        
-        inputs.forEach((div, index) => {
+        inputs.forEach((div) => {
             const removeButton = div.querySelector('button');
-            if (inputs.length === 1) {
-                // Eğer sadece 1 input varsa silme butonunu gizle
-                removeButton.style.display = 'none';
-            } else {
-                // Birden fazla input varsa silme butonunu göster
-                removeButton.style.display = 'block';
+            if (removeButton) {
+                removeButton.style.display = (inputs.length === 1) ? 'none' : 'block';
             }
         });
     }
 
-        // Sayfa yüklendiğinde butonları güncelle
-        document.addEventListener('DOMContentLoaded', function() {
-            // Seri numarası değişkenini en başta tanımla
-            let serialNumbers = [];
-            
-            updateRemoveButtons();
-            updateEmptyMessage();
-            
-            // Eğer validation hatası varsa, eski seri numaralarını geri yükle
-            const oldStockSerials = document.getElementById('stock_serials_hidden').value;
-            if (oldStockSerials) {
-                try {
-                    const serials = JSON.parse(oldStockSerials);
-                    if (Array.isArray(serials)) {
-                        serials.forEach(serial => {
-                            if (serial && !serialNumbers.includes(serial)) {
-                                serialNumbers.push(serial);
-                                
-                                // UI'da göster
-                                const serialItem = document.createElement('div');
-                                serialItem.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg border';
-                                serialItem.innerHTML = `
-                                    <div class="flex items-center">
-                                        <i class="fas fa-barcode text-gray-500 mr-2"></i>
-                                        <span class="font-mono text-sm">${serial}</span>
-                                    </div>
-                                    <button type="button" 
-                                            class="text-red-500 hover:text-red-700 transition duration-200 remove-serial-btn"
-                                            data-serial="${serial}">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                `;
-                                
-                                serialNumbersList.appendChild(serialItem);
-                                
-                                // Kaldır butonuna event listener ekle
-                                serialItem.querySelector('.remove-serial-btn').addEventListener('click', function() {
-                                    const serialToRemove = this.getAttribute('data-serial');
-                                    removeSerialNumber(serialToRemove);
-                                });
-                            }
-                        });
-                    }
-                } catch (e) {
-                    console.error('Error parsing old stock serials:', e);
-                }
-            }
-        
-        // Marka seçimi değiştiğinde modelleri yükle
+    document.addEventListener('DOMContentLoaded', function() {
+        let serialNumbers = [];
+        updateRemoveButtons();
+
+        // Eleman referansları
         const brandSelect = document.getElementById('brand_id');
         const modelSelect = document.getElementById('phone_model_id');
         const colorSelect = document.getElementById('color_id');
         const colorFilterBtn = document.getElementById('color-filter-btn');
-        
-        // Tüm renkleri sakla (filtreleme için)
-        const allColors = Array.from(colorSelect.options).map(option => ({
-            value: option.value,
-            text: option.textContent
-        }));
-        
-        let isFiltered = false;
-        
+        const newSerialInput = document.getElementById('new_serial_input');
+        const addSerialBtn = document.getElementById('add_serial_btn');
+        const serialNumbersList = document.getElementById('serial_numbers_list');
+        const stockSerialsHidden = document.getElementById('stock_serials_hidden');
+        const emptySerialsMessage = document.getElementById('empty_serials_message');
+        const phoneForm = document.getElementById('phone-create-form');
+        const submitBtn = document.getElementById('submit-phone-btn');
+
+        // Tüm aktif sistem renkleri (anında hafızadan erişim)
+        const allSystemColors = @json($colors);
+        const initialBrandId = "{{ old('brand_id', '') }}";
+        const initialModelId = "{{ old('phone_model_id', '') }}";
+        const initialColorId = "{{ old('color_id', '') }}";
+
+        let isBrandFiltered = false;
+        let brandColorsCache = {};
+
+        // Renkleri doldurma fonksiyonu
+        function populateColors(colorList, selectedId, isBrandSpecific = false) {
+            const currentSelected = selectedId || colorSelect.value;
+            colorSelect.innerHTML = '<option value="">Renk Seçiniz</option>';
+
+            if (colorList && colorList.length > 0) {
+                colorList.forEach(color => {
+                    const option = document.createElement('option');
+                    option.value = color.id;
+                    option.textContent = color.name;
+                    if (currentSelected && String(color.id) === String(currentSelected)) {
+                        option.selected = true;
+                    }
+                    colorSelect.appendChild(option);
+                });
+                colorSelect.disabled = false;
+            } else {
+                // Eğer markaya atanmış özel renk yoksa, kullanıcıyı tıkamamak için tüm renkleri listele
+                allSystemColors.forEach(color => {
+                    const option = document.createElement('option');
+                    option.value = color.id;
+                    option.textContent = color.name;
+                    if (currentSelected && String(color.id) === String(currentSelected)) {
+                        option.selected = true;
+                    }
+                    colorSelect.appendChild(option);
+                });
+                colorSelect.disabled = false;
+                isBrandSpecific = false;
+            }
+
+            // Filtre butonunu güncelle
+            if (colorFilterBtn) {
+                if (isBrandSpecific) {
+                    colorFilterBtn.innerHTML = '<i class="fas fa-list mr-1"></i>Tüm Renkler';
+                    colorFilterBtn.className = 'text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full hover:bg-orange-200 transition duration-200';
+                    colorFilterBtn.title = 'Tüm renk seçeneklerini göster';
+                    isBrandFiltered = true;
+                } else {
+                    colorFilterBtn.innerHTML = '<i class="fas fa-filter mr-1"></i>Marka Renkleri';
+                    colorFilterBtn.className = 'text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition duration-200';
+                    colorFilterBtn.title = 'Sadece seçili markaya ait renkleri göster';
+                    isBrandFiltered = false;
+                }
+                colorFilterBtn.disabled = !brandSelect.value;
+            }
+        }
+
+        // Marka renklerini getirme
+        function loadBrandColors(brandId, selectedId) {
+            if (!brandId) {
+                populateColors(allSystemColors, selectedId, false);
+                return;
+            }
+
+            if (brandColorsCache[brandId]) {
+                if (brandColorsCache[brandId].length > 0) {
+                    populateColors(brandColorsCache[brandId], selectedId, true);
+                } else {
+                    populateColors(allSystemColors, selectedId, false);
+                }
+                return;
+            }
+
+            // Sunucudan getir
+            fetch(`{{ route('admin.phones.colors-by-brand') }}?brand_id=${brandId}`)
+                .then(response => response.json())
+                .then(data => {
+                    brandColorsCache[brandId] = (data && data.colors) ? data.colors : [];
+                    if (brandColorsCache[brandId].length > 0) {
+                        populateColors(brandColorsCache[brandId], selectedId, true);
+                    } else {
+                        populateColors(allSystemColors, selectedId, false);
+                    }
+                })
+                .catch(error => {
+                    console.error('Renkler yüklenirken hata:', error);
+                    populateColors(allSystemColors, selectedId, false);
+                });
+        }
+
+        // Marka değiştiğinde modelleri ve renkleri güncelle
         brandSelect.addEventListener('change', function() {
             const brandId = this.value;
-            
-            // Model seçimini temizle ve devre dışı bırak
             modelSelect.innerHTML = '<option value="">Yükleniyor...</option>';
             modelSelect.disabled = true;
-            
-            // Renk seçimini temizle ve devre dışı bırak
-            colorSelect.innerHTML = '<option value="">Yükleniyor...</option>';
-            colorSelect.disabled = true;
-            
-            // Renk filtresi butonunu güncelle
+
             if (brandId) {
-                colorFilterBtn.disabled = false;
-                colorFilterBtn.innerHTML = '<i class="fas fa-filter mr-1"></i>Filtrele';
-                colorFilterBtn.className = 'text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition duration-200';
-                isFiltered = false;
-            } else {
-                colorFilterBtn.disabled = true;
-                colorFilterBtn.innerHTML = '<i class="fas fa-filter mr-1"></i>Filtrele';
-                colorFilterBtn.className = 'text-xs bg-gray-100 text-gray-500 px-3 py-1 rounded-full';
-                isFiltered = false;
-            }
-            
-            if (brandId) {
-                // AJAX ile modelleri getir
+                // Modelleri getir
                 fetch(`{{ route('admin.phones.models-by-brand') }}?brand_id=${brandId}`)
                     .then(response => response.json())
                     .then(data => {
                         modelSelect.innerHTML = '<option value="">Model Seçiniz</option>';
-                        
                         if (data.models && data.models.length > 0) {
                             data.models.forEach(model => {
                                 const option = document.createElement('option');
@@ -540,148 +550,93 @@
                         }
                     })
                     .catch(error => {
-                        console.error('Error:', error);
+                        console.error('Modeller yüklenirken hata:', error);
                         modelSelect.innerHTML = '<option value="">Hata oluştu</option>';
                     });
-                
-                // AJAX ile renkleri getir
-                fetch(`{{ route('admin.phones.colors-by-brand') }}?brand_id=${brandId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        colorSelect.innerHTML = '<option value="">Renk Seçiniz</option>';
-                        
-                        if (data.colors && data.colors.length > 0) {
-                            data.colors.forEach(color => {
-                                const option = document.createElement('option');
-                                option.value = color.id;
-                                option.textContent = color.name;
-                                colorSelect.appendChild(option);
-                            });
-                            colorSelect.disabled = false;
-                        } else {
-                            colorSelect.innerHTML = '<option value="">Bu markaya ait renk bulunamadı</option>';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        colorSelect.innerHTML = '<option value="">Hata oluştu</option>';
-                    });
+
+                // Renkleri yükle
+                loadBrandColors(brandId, null);
             } else {
                 modelSelect.innerHTML = '<option value="">Önce marka seçiniz</option>';
-                colorSelect.innerHTML = '<option value="">Önce marka seçiniz</option>';
+                modelSelect.disabled = true;
+                populateColors(allSystemColors, null, false);
             }
         });
-        
-        // Renk filtresi butonu
-        colorFilterBtn.addEventListener('click', function() {
-            const brandId = brandSelect.value;
-            
-            if (!brandId) {
-                alert('Önce marka seçiniz');
-                return;
-            }
-            
-            if (!isFiltered) {
-                // Filtrele
-                colorSelect.innerHTML = '<option value="">Yükleniyor...</option>';
-                colorSelect.disabled = true;
-                
-                fetch(`{{ route('admin.phones.colors-by-brand') }}?brand_id=${brandId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        colorSelect.innerHTML = '<option value="">Renk Seçiniz</option>';
-                        
-                        if (data.colors && data.colors.length > 0) {
-                            data.colors.forEach(color => {
-                                const option = document.createElement('option');
-                                option.value = color.id;
-                                option.textContent = color.name;
-                                colorSelect.appendChild(option);
-                            });
-                            colorSelect.disabled = false;
-                            
-                            // Buton metnini güncelle
-                            colorFilterBtn.innerHTML = '<i class="fas fa-undo mr-1"></i>Sıfırla';
-                            colorFilterBtn.className = 'text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded-full hover:bg-orange-200 transition duration-200';
-                            isFiltered = true;
-                        } else {
-                            colorSelect.innerHTML = '<option value="">Bu markaya ait renk bulunamadı</option>';
-                            colorSelect.disabled = false;
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        colorSelect.innerHTML = '<option value="">Hata oluştu</option>';
-                        colorSelect.disabled = false;
-                    });
-            } else {
-                // Sıfırla - tüm renkleri geri yükle
-                colorSelect.innerHTML = '';
-                allColors.forEach(color => {
-                    const option = document.createElement('option');
-                    option.value = color.value;
-                    option.textContent = color.text;
-                    colorSelect.appendChild(option);
+
+        // Renk filtreleme butonu (Marka Renkleri <-> Tüm Renkler anında geçiş)
+        if (colorFilterBtn) {
+            colorFilterBtn.addEventListener('click', function() {
+                const brandId = brandSelect.value;
+                const currentVal = colorSelect.value;
+                if (!brandId) return;
+
+                if (isBrandFiltered) {
+                    // Marka renklerindeyken -> Tüm renklere geç
+                    populateColors(allSystemColors, currentVal, false);
+                } else {
+                    // Tüm renklerindeyken -> Marka renklerine geç
+                    if (brandColorsCache[brandId] && brandColorsCache[brandId].length > 0) {
+                        populateColors(brandColorsCache[brandId], currentVal, true);
+                    } else {
+                        loadBrandColors(brandId, currentVal);
+                    }
+                }
+            });
+        }
+
+        // Sayfa ilk yüklendiğinde (örn. validation hatası sonrası)
+        if (initialBrandId) {
+            fetch(`{{ route('admin.phones.models-by-brand') }}?brand_id=${initialBrandId}`)
+                .then(response => response.json())
+                .then(data => {
+                    modelSelect.innerHTML = '<option value="">Model Seçiniz</option>';
+                    if (data.models && data.models.length > 0) {
+                        data.models.forEach(model => {
+                            const option = document.createElement('option');
+                            option.value = model.id;
+                            option.textContent = model.name;
+                            if (initialModelId && String(model.id) === String(initialModelId)) {
+                                option.selected = true;
+                            }
+                            modelSelect.appendChild(option);
+                        });
+                        modelSelect.disabled = false;
+                    }
                 });
-                colorSelect.disabled = false;
-                
-                // Buton metnini güncelle
-                colorFilterBtn.innerHTML = '<i class="fas fa-filter mr-1"></i>Filtrele';
-                colorFilterBtn.className = 'text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition duration-200';
-                isFiltered = false;
-            }
-        });
-        
-        // Seri numarası ekleme fonksiyonları
-        const newSerialInput = document.getElementById('new_serial_input');
-        const addSerialBtn = document.getElementById('add_serial_btn');
-        const serialNumbersList = document.getElementById('serial_numbers_list');
-        const stockSerialsHidden = document.getElementById('stock_serials_hidden');
-        
+            loadBrandColors(initialBrandId, initialColorId);
+        } else {
+            populateColors(allSystemColors, initialColorId, false);
+            if (colorFilterBtn) colorFilterBtn.disabled = true;
+        }
+
+        // ================= Seri Numarası İşlemleri =================
         function updateHiddenInput() {
             stockSerialsHidden.value = JSON.stringify(serialNumbers);
             updateEmptyMessage();
         }
-        
+
         function updateEmptyMessage() {
-            const emptyMessage = document.getElementById('empty_serials_message');
-            if (serialNumbers.length === 0) {
-                emptyMessage.style.display = 'block';
-            } else {
-                emptyMessage.style.display = 'none';
+            if (emptySerialsMessage) {
+                emptySerialsMessage.style.display = serialNumbers.length === 0 ? 'block' : 'none';
             }
         }
-        
-        // Enter tuşu ile ekleme
-        newSerialInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                addSerialNumber();
-            }
-        });
-        
-        // Ekle butonu ile ekleme
-        addSerialBtn.addEventListener('click', function() {
-            addSerialNumber();
-        });
-        
+
         function addSerialNumber() {
             const serialNumber = newSerialInput.value.trim();
-            
             if (!serialNumber) {
                 alert('Lütfen seri numarası giriniz');
+                newSerialInput.focus();
                 return;
             }
-            
+
             if (serialNumbers.includes(serialNumber)) {
-                alert('Bu seri numarası zaten eklenmiş');
+                alert('Bu seri numarası listeye zaten eklenmiş.');
+                newSerialInput.focus();
                 return;
             }
-            
-            // Seri numarasını listeye ekle
+
             serialNumbers.push(serialNumber);
-            
-            // UI'da göster
+
             const serialItem = document.createElement('div');
             serialItem.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg border';
             serialItem.innerHTML = `
@@ -695,44 +650,104 @@
                     <i class="fas fa-times"></i>
                 </button>
             `;
-            
             serialNumbersList.appendChild(serialItem);
-            
-            // Input'u temizle
+
             newSerialInput.value = '';
-            
-            // Hidden input'u güncelle
+            newSerialInput.focus();
             updateHiddenInput();
-            
-            // Kaldır butonuna event listener ekle
+
             serialItem.querySelector('.remove-serial-btn').addEventListener('click', function() {
-                const serialToRemove = this.getAttribute('data-serial');
-                removeSerialNumber(serialToRemove);
+                removeSerialNumber(this.getAttribute('data-serial'));
             });
         }
-        
-        function removeSerialNumber(serialNumber) {
-            // Array'den kaldır
-            serialNumbers = serialNumbers.filter(s => s !== serialNumber);
-            
-            // UI'dan kaldır
+
+        function removeSerialNumber(serialToRemove) {
+            serialNumbers = serialNumbers.filter(s => s !== serialToRemove);
             const serialItems = serialNumbersList.querySelectorAll('.remove-serial-btn');
-            serialItems.forEach(item => {
-                if (item.getAttribute('data-serial') === serialNumber) {
-                    item.closest('div').remove();
+            serialItems.forEach(btn => {
+                if (btn.getAttribute('data-serial') === serialToRemove) {
+                    btn.closest('div').remove();
                 }
             });
-            
-            // Hidden input'u güncelle
             updateHiddenInput();
         }
-        
-        // Form gönderilmeden önce sadece hidden input'u güncelle
-        document.querySelector('form').addEventListener('submit', function(e) {
-            // Hidden input'u güncelle (son kez)
-            updateHiddenInput();
-        });
-        
+
+        if (newSerialInput) {
+            newSerialInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addSerialNumber();
+                }
+            });
+        }
+
+        if (addSerialBtn) {
+            addSerialBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                addSerialNumber();
+            });
+        }
+
+        // Eski seri numaralarını geri yükle (validation sonrası)
+        const oldStockSerials = stockSerialsHidden.value;
+        if (oldStockSerials) {
+            try {
+                const serials = JSON.parse(oldStockSerials);
+                if (Array.isArray(serials)) {
+                    serials.forEach(serial => {
+                        if (serial && !serialNumbers.includes(serial)) {
+                            serialNumbers.push(serial);
+                            const item = document.createElement('div');
+                            item.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg border';
+                            item.innerHTML = `
+                                <div class="flex items-center">
+                                    <i class="fas fa-barcode text-gray-500 mr-2"></i>
+                                    <span class="font-mono text-sm">${serial}</span>
+                                </div>
+                                <button type="button" class="text-red-500 hover:text-red-700 remove-serial-btn" data-serial="${serial}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            `;
+                            serialNumbersList.appendChild(item);
+                            item.querySelector('.remove-serial-btn').addEventListener('click', function() {
+                                removeSerialNumber(this.getAttribute('data-serial'));
+                            });
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Seri numarası parse hatası:', e);
+            }
+        }
+        updateEmptyMessage();
+
+        // ================= Form Gönderimi & Çift Tıklama Engeli =================
+        let isSubmitting = false;
+
+        if (phoneForm) {
+            phoneForm.addEventListener('submit', function(e) {
+                updateHiddenInput();
+
+                if (serialNumbers.length === 0) {
+                    e.preventDefault();
+                    alert('Lütfen en az bir seri numarası ekleyin.');
+                    if (newSerialInput) newSerialInput.focus();
+                    return false;
+                }
+
+                if (isSubmitting) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                isSubmitting = true;
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Kaydediliyor...';
+                }
+            });
+        }
     });
 </script>
 @endsection

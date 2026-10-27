@@ -63,6 +63,7 @@ class AdminController extends Controller
             'admin_logged_in' => true,
             'admin_id' => $admin->id,
             'admin_name' => $admin->name,
+            'admin_email' => $admin->email,
             'admin_role' => $admin->role
         ]);
 
@@ -97,8 +98,8 @@ class AdminController extends Controller
 
     public function sales(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('sales.view', $request)) {
+            return $res;
         }
 
         // Get all customer records (sales) with phone and customer info
@@ -267,8 +268,8 @@ class AdminController extends Controller
 
     public function phones(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('phones.view', $request)) {
+            return $res;
         }
 
         $query = Phone::with(['brand', 'phoneModel', 'color', 'storage']);
@@ -373,20 +374,20 @@ class AdminController extends Controller
             }
         }
 
-        session()->forget(['admin_logged_in', 'admin_id', 'admin_name', 'admin_role']);
+        session()->forget(['admin_logged_in', 'admin_id', 'admin_name', 'admin_email', 'admin_role']);
         return redirect()->route('admin.login');
     }
 
     public function create()
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('phones.create')) {
+            return $res;
         }
 
         // Veritabanından verileri çek
-        $brands = Brand::where('is_active', true)->get();
-        $colors = Color::where('is_active', true)->get();
-        $storages = StorageModel::where('is_active', true)->get();
+        $brands = Brand::where('is_active', true)->orderBy('name')->get();
+        $colors = Color::where('is_active', true)->orderBy('name')->get();
+        $storages = StorageModel::where('is_active', true)->orderBy('capacity_gb')->get();
 
         return view('admin.phones.create', compact(
             'brands', 'colors', 'storages'
@@ -395,8 +396,8 @@ class AdminController extends Controller
 
     public function store(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('phones.create', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -450,6 +451,25 @@ class AdminController extends Controller
             return redirect()->back()->withErrors(['stock_serials' => 'En az bir seri numarası eklemelisiniz.'])->withInput();
         }
 
+        // Seri numaralarını tekilleştir ve temizle (çift ekleme engeli)
+        $stockSerials = array_unique(array_filter(array_map('trim', $stockSerials)));
+
+        if (empty($stockSerials)) {
+            return redirect()->back()->withErrors(['stock_serials' => 'Geçerli bir seri numarası bulunamadı.'])->withInput();
+        }
+
+        // Mevcut stokta zaten bulunan seri numarası var mı kontrol et
+        $existingSerials = Phone::whereIn('stock_serial', $stockSerials)
+                                ->where('is_sold', false)
+                                ->pluck('stock_serial')
+                                ->toArray();
+
+        if (!empty($existingSerials)) {
+            return redirect()->back()
+                ->withErrors(['stock_serials' => 'Şu seri numaraları zaten mevcut stokta bulunmaktadır: ' . implode(', ', $existingSerials)])
+                ->withInput();
+        }
+
         $phoneData = $request->except(['stock_serials']);
         
         // Default image if no images provided
@@ -459,25 +479,32 @@ class AdminController extends Controller
 
         $createdCount = 0;
         
-        // Her seri numarası için ayrı kayıt oluştur
-        foreach ($stockSerials as $serialNumber) {
-            $phoneData['stock_serial'] = $serialNumber;
-            $phone = Phone::create($phoneData);
-            AuditHelper::logCreate($phone);
-            $createdCount++;
+        \DB::beginTransaction();
+        try {
+            foreach ($stockSerials as $serialNumber) {
+                $phoneData['stock_serial'] = $serialNumber;
+                $phone = Phone::create($phoneData);
+                AuditHelper::logCreate($phone, $phone->name . ' (' . $serialNumber . ') cihazı stoğa eklendi');
+                $createdCount++;
+            }
+            \DB::commit();
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            Log::error('Phone store error: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'Cihaz eklenirken bir hata oluştu: ' . $e->getMessage()])->withInput();
         }
 
         $message = $createdCount > 1 
             ? "{$createdCount} adet telefon başarıyla eklendi!" 
             : "Telefon başarıyla eklendi!";
 
-        return redirect()->route('admin.dashboard')->with('success', $message);
+        return redirect()->route('admin.phones.index')->with('success', $message);
     }
 
     public function show(Phone $phone)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('phones.view')) {
+            return $res;
         }
 
         // Telefon bilgilerini ilişkileriyle birlikte yükle
@@ -488,8 +515,8 @@ class AdminController extends Controller
 
     public function edit(Phone $phone)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('phones.update')) {
+            return $res;
         }
 
         // Telefon bilgilerini ilişkileriyle birlikte yükle
@@ -506,11 +533,11 @@ class AdminController extends Controller
                                 ->orderBy('name')
                                 ->get();
 
-        // Seçili markaya ait renkleri yükle
-        $brandColors = $phone->brand->colors()
-                                   ->where('is_active', true)
-                                   ->orderBy('name')
-                                   ->get();
+        // Seçili markaya ait renkleri yükle (markaya ait yoksa tüm renkler)
+        $brandColors = $phone->brand ? $phone->brand->colors()->where('is_active', true)->orderBy('name')->get() : collect();
+        if ($brandColors->isEmpty()) {
+            $brandColors = $colors;
+        }
 
         return view('admin.phones.edit', compact(
             'phone', 'brands', 'colors', 'storages',
@@ -520,8 +547,8 @@ class AdminController extends Controller
 
     public function update(Request $request, Phone $phone)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('phones.update', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -565,8 +592,8 @@ class AdminController extends Controller
 
     public function destroy(Phone $phone)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('phones.delete', request())) {
+            return $res;
         }
 
         try {
@@ -581,29 +608,29 @@ class AdminController extends Controller
     }
 
     // Data Management Pages
-    public function dataIndex()
+    public function dataIndex(Request $request = null)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         return view('admin.data.index');
     }
 
-    public function brands()
+    public function brands(Request $request = null)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $brands = Brand::withCount('phoneModels')->get();
         return view('admin.data.brands', compact('brands'));
     }
 
-    public function phoneModels()
+    public function phoneModels(Request $request = null)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $phoneModels = PhoneModel::with('brand')->withCount('phones')->get();
@@ -611,20 +638,20 @@ class AdminController extends Controller
         return view('admin.data.phone-models', compact('phoneModels', 'brands'));
     }
 
-    public function colors()
+    public function colors(Request $request = null)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $colors = Color::withCount('phones')->get();
         return view('admin.data.colors', compact('colors'));
     }
 
-    public function storages()
+    public function storages(Request $request = null)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $storages = StorageModel::withCount('phones')->get();
@@ -634,10 +661,10 @@ class AdminController extends Controller
 
 
     // Create Methods
-    public function createBrand()
+    public function createBrand(Request $request = null)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         return view('admin.data.brands.create');
@@ -645,8 +672,8 @@ class AdminController extends Controller
 
     public function storeBrand(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -663,8 +690,8 @@ class AdminController extends Controller
 
     public function editBrand(Brand $brand)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage')) {
+            return $res;
         }
 
         // Brand'i phone models count ile birlikte yükle
@@ -678,8 +705,8 @@ class AdminController extends Controller
 
     public function updateBrand(Request $request, Brand $brand)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -706,10 +733,31 @@ class AdminController extends Controller
         return redirect()->route('admin.data.brands')->with('success', 'Marka başarıyla güncellendi!');
     }
 
-    public function createColor()
+    public function destroyBrand(Brand $brand)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage')) {
+            return $res;
+        }
+
+        $brandName = $brand->name;
+        $brand->delete(); // Soft delete
+
+        AuditHelper::logDelete($brand, $brandName . ' markası silindi (arşive alındı)');
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $brandName . ' markası başarıyla silindi (arşive alındı).'
+            ]);
+        }
+
+        return redirect()->route('admin.data.brands')->with('success', $brandName . ' markası başarıyla silindi (arşive alındı).');
+    }
+
+    public function createColor(Request $request = null)
+    {
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         return view('admin.data.colors.create');
@@ -717,8 +765,8 @@ class AdminController extends Controller
 
     public function storeColor(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -734,8 +782,8 @@ class AdminController extends Controller
 
     public function editColor(Color $color)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage')) {
+            return $res;
         }
 
         return view('admin.data.colors.edit', compact('color'));
@@ -743,8 +791,8 @@ class AdminController extends Controller
 
     public function updateColor(Request $request, Color $color)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -761,10 +809,10 @@ class AdminController extends Controller
         return redirect()->route('admin.data.colors')->with('success', 'Renk başarıyla güncellendi!');
     }
 
-    public function createStorage()
+    public function createStorage(Request $request = null)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         return view('admin.data.storages.create');
@@ -772,8 +820,8 @@ class AdminController extends Controller
 
     public function storeStorage(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -789,8 +837,8 @@ class AdminController extends Controller
 
     public function editStorage(StorageModel $storage)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage')) {
+            return $res;
         }
 
         return view('admin.data.storages.edit', compact('storage'));
@@ -798,8 +846,8 @@ class AdminController extends Controller
 
     public function updateStorage(Request $request, StorageModel $storage)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -816,14 +864,10 @@ class AdminController extends Controller
         return redirect()->route('admin.data.storages')->with('success', 'Depolama başarıyla güncellendi!');
     }
 
-
-
-
-
-    public function createPhoneModel()
+    public function createPhoneModel(Request $request = null)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $brands = Brand::where('is_active', true)->get();
@@ -832,8 +876,8 @@ class AdminController extends Controller
 
     public function storePhoneModel(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -855,8 +899,8 @@ class AdminController extends Controller
 
     public function editPhoneModel(PhoneModel $phoneModel)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage')) {
+            return $res;
         }
 
         $brands = Brand::where('is_active', true)->get();
@@ -865,8 +909,8 @@ class AdminController extends Controller
 
     public function updatePhoneModel(Request $request, PhoneModel $phoneModel)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('data.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -918,8 +962,8 @@ class AdminController extends Controller
 
     public function sellPhone(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+        if ($res = $this->checkPermission('sales.create', $request)) {
+            return $res;
         }
 
         try {
@@ -1188,8 +1232,8 @@ class AdminController extends Controller
 
     public function repurchasePhone(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+        if ($res = $this->checkPermission('sales.create', $request)) {
+            return $res;
         }
 
         try {
@@ -1273,11 +1317,8 @@ class AdminController extends Controller
 
     public function deleteSale(Request $request, $saleId)
     {
-        if (!session('admin_logged_in')) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
-            }
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('sales.delete', $request)) {
+            return $res;
         }
 
         try {
@@ -1305,12 +1346,11 @@ class AdminController extends Controller
                 // Delete CustomerRecord
                 $customerRecord->delete();
 
-                // Update phone - mark as not sold
+                // Update phone - mark as not sold (preserve sale_price so stock retains price tag)
                 if ($phone) {
                     $phone->update([
                         'is_sold' => false,
-                        'sold_at' => null,
-                        'sale_price' => null
+                        'sold_at' => null
                     ]);
                 }
 
@@ -1358,8 +1398,7 @@ class AdminController extends Controller
                 // Update phone - mark as not sold
                 $phone->update([
                     'is_sold' => false,
-                    'sold_at' => null,
-                    'sale_price' => null
+                    'sold_at' => null
                 ]);
 
                 // Audit log
@@ -1421,10 +1460,10 @@ class AdminController extends Controller
     }
 
     // Settings functionality
-    public function settings()
+    public function settings(Request $request = null)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('settings.manage', $request)) {
+            return $res;
         }
 
         // Get settings from database
@@ -1435,8 +1474,8 @@ class AdminController extends Controller
 
     public function updateSettings(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('settings.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -1501,8 +1540,8 @@ class AdminController extends Controller
 
     public function uploadLogo(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+        if ($res = $this->checkPermission('settings.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -1571,8 +1610,8 @@ class AdminController extends Controller
 
     public function uploadFavicon(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+        if ($res = $this->checkPermission('settings.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -1641,8 +1680,8 @@ class AdminController extends Controller
 
     public function reports()
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('reports.view')) {
+            return $res;
         }
 
         // Telefon istatistikleri
@@ -1651,20 +1690,28 @@ class AdminController extends Controller
         $availablePhones = Phone::where('is_sold', false)->count();
         $featuredPhones = Phone::where('is_featured', true)->count();
         
-        // Mevcut stoktaki telefonların toplam değeri
-        $stockValue = Phone::where('is_sold', false)
-            ->sum('purchase_price') ?? 0;
+        // Mevcut stoktaki telefonların toplam alış maliyeti (Düzgün sayım - sadece satılmamış stok)
+        $stockValue = (float) (Phone::where('is_sold', false)->sum('purchase_price') ?? 0);
 
-        // Marka bazında istatistikler
-        $brandStats = Phone::join('brands', 'phones.brand_id', '=', 'brands.id')
-            ->selectRaw('brands.name, COUNT(*) as count')
-            ->groupBy('brands.id', 'brands.name')
+        // Mevcut stoktaki telefonların beklenen toplam satış değeri
+        $stockSaleValue = (float) (Phone::where('is_sold', false)->sum('sale_price') ?? 0);
+
+        // Beklenen brüt kâr (Potansiyel Satış - Alış Maliyeti)
+        $expectedProfit = $stockSaleValue - $stockValue;
+
+        // Ortalama cihaz maliyeti
+        $avgCost = $availablePhones > 0 ? ($stockValue / $availablePhones) : 0;
+
+        // Marka bazında istatistikler (leftJoin ile markasız veya arşive alınmış markalar da doğru sayılır)
+        $brandStats = Phone::leftJoin('brands', 'phones.brand_id', '=', 'brands.id')
+            ->selectRaw('COALESCE(brands.name, "Diğer") as name, COUNT(phones.id) as count')
+            ->groupBy('phones.brand_id', 'brands.name')
             ->orderBy('count', 'desc')
             ->get();
 
         // Durum bazında istatistikler
-        $conditionStats = Phone::selectRaw('`condition`, COUNT(*) as count')
-            ->groupBy('condition')
+        $conditionStats = Phone::selectRaw('phones.condition, COUNT(*) as count')
+            ->groupBy('phones.condition')
             ->get();
 
         // Menşei bazında istatistikler
@@ -1674,6 +1721,7 @@ class AdminController extends Controller
 
         // Aylık satış istatistikleri (son 12 ay)
         $monthlySales = Phone::where('is_sold', true)
+            ->whereNotNull('sold_at')
             ->where('sold_at', '>=', now()->subMonths(12))
             ->selectRaw('DATE_FORMAT(sold_at, "%Y-%m") as month, COUNT(*) as count')
             ->groupBy('month')
@@ -1682,26 +1730,27 @@ class AdminController extends Controller
 
         // En çok satılan telefonlar
         $topSellingPhones = Phone::where('is_sold', true)
-            ->join('brands', 'phones.brand_id', '=', 'brands.id')
-            ->join('phone_models', 'phones.phone_model_id', '=', 'phone_models.id')
-            ->selectRaw('phones.name, brands.name as brand_name, phone_models.name as model_name, COUNT(*) as sales_count')
+            ->leftJoin('brands', 'phones.brand_id', '=', 'brands.id')
+            ->leftJoin('phone_models', 'phones.phone_model_id', '=', 'phone_models.id')
+            ->selectRaw('phones.name, COALESCE(brands.name, "-") as brand_name, COALESCE(phone_models.name, "-") as model_name, COUNT(*) as sales_count')
             ->groupBy('phones.name', 'brands.name', 'phone_models.name')
             ->orderBy('sales_count', 'desc')
             ->limit(10)
             ->get();
 
-        // Detaylı rapor - Model bazında istatistikler
+        // Detaylı rapor - Model bazında istatistikler (leftJoin ile eksiksiz ve doğru hesaplama)
         $detailedReport = Phone::selectRaw('
-                phone_models.name as model_name,
-                brands.name as brand_name,
-                COUNT(*) as total_count,
+                COALESCE(phone_models.name, "Belirtilmemiş") as model_name,
+                COALESCE(brands.name, "Belirtilmemiş") as brand_name,
+                COUNT(phones.id) as total_count,
                 SUM(CASE WHEN phones.is_sold = 1 THEN 1 ELSE 0 END) as sold_count,
                 SUM(CASE WHEN phones.is_sold = 0 THEN 1 ELSE 0 END) as available_count,
-                SUM(CASE WHEN phones.is_sold = 0 THEN phones.purchase_price ELSE 0 END) as stock_value
+                SUM(CASE WHEN phones.is_sold = 0 THEN phones.purchase_price ELSE 0 END) as stock_value,
+                SUM(CASE WHEN phones.is_sold = 0 THEN COALESCE(phones.sale_price, 0) ELSE 0 END) as stock_sale_value
             ')
-            ->join('phone_models', 'phones.phone_model_id', '=', 'phone_models.id')
-            ->join('brands', 'phones.brand_id', '=', 'brands.id')
-            ->groupBy('phone_models.id', 'phone_models.name', 'brands.name')
+            ->leftJoin('phone_models', 'phones.phone_model_id', '=', 'phone_models.id')
+            ->leftJoin('brands', 'phones.brand_id', '=', 'brands.id')
+            ->groupBy('phones.brand_id', 'phones.phone_model_id', 'phone_models.name', 'brands.name')
             ->orderBy('total_count', 'desc')
             ->get();
 
@@ -1711,6 +1760,9 @@ class AdminController extends Controller
             'availablePhones',
             'featuredPhones',
             'stockValue',
+            'stockSaleValue',
+            'expectedProfit',
+            'avgCost',
             'brandStats',
             'conditionStats',
             'originStats',
@@ -1723,13 +1775,8 @@ class AdminController extends Controller
     // Admin Management
     public function admins(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $currentAdmin = Admin::find(session('admin_id'));
-        if (!$currentAdmin || !$currentAdmin->isAdmin()) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        if ($res = $this->checkPermission('admins.manage', $request)) {
+            return $res;
         }
 
         $query = Admin::query();
@@ -1758,15 +1805,10 @@ class AdminController extends Controller
         return view('admin.admins.index', compact('admins'));
     }
 
-    public function createAdmin()
+    public function createAdmin(Request $request = null)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $currentAdmin = Admin::find(session('admin_id'));
-        if (!$currentAdmin || !$currentAdmin->isAdmin()) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        if ($res = $this->checkPermission('admins.manage', $request)) {
+            return $res;
         }
 
         return view('admin.admins.create');
@@ -1774,13 +1816,8 @@ class AdminController extends Controller
 
     public function storeAdmin(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $currentAdmin = Admin::find(session('admin_id'));
-        if (!$currentAdmin || !$currentAdmin->isAdmin()) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        if ($res = $this->checkPermission('admins.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -1806,15 +1843,10 @@ class AdminController extends Controller
         return redirect()->route('admin.admins.index')->with('success', 'Admin kullanıcısı başarıyla oluşturuldu.');
     }
 
-    public function editAdmin(Admin $admin)
+    public function editAdmin(Admin $admin, Request $request = null)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $currentAdmin = Admin::find(session('admin_id'));
-        if (!$currentAdmin || !$currentAdmin->isAdmin()) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        if ($res = $this->checkPermission('admins.manage', $request)) {
+            return $res;
         }
 
         return view('admin.admins.edit', compact('admin'));
@@ -1822,13 +1854,8 @@ class AdminController extends Controller
 
     public function updateAdmin(Request $request, Admin $admin)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $currentAdmin = Admin::find(session('admin_id'));
-        if (!$currentAdmin || !$currentAdmin->isAdmin()) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        if ($res = $this->checkPermission('admins.manage', $request)) {
+            return $res;
         }
 
         $request->validate([
@@ -1861,19 +1888,16 @@ class AdminController extends Controller
         return redirect()->route('admin.admins.index')->with('success', 'Admin kullanıcısı başarıyla güncellendi.');
     }
 
-    public function destroyAdmin(Admin $admin)
+    public function destroyAdmin(Admin $admin, Request $request = null)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
+        if ($res = $this->checkPermission('admins.delete', $request)) {
+            return $res;
         }
 
-        $currentAdmin = Admin::find(session('admin_id'));
-        if (!$currentAdmin || !$currentAdmin->isSuperAdmin()) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
-        }
+        $currentAdmin = Admin::current();
 
         // Kendi hesabını silemez
-        if ($admin->id === $currentAdmin->id) {
+        if ($currentAdmin && $admin->id === $currentAdmin->id) {
             return redirect()->route('admin.admins.index')->with('error', 'Kendi hesabınızı silemezsiniz.');
         }
 
@@ -1888,13 +1912,8 @@ class AdminController extends Controller
     // Audit Logs
     public function auditLogs(Request $request)
     {
-        if (!session('admin_logged_in')) {
-            return redirect()->route('admin.login');
-        }
-
-        $currentAdmin = Admin::find(session('admin_id'));
-        if (!$currentAdmin || !$currentAdmin->isAdmin()) {
-            return redirect()->route('admin.dashboard')->with('error', 'Bu işlem için yetkiniz yok.');
+        if ($res = $this->checkPermission('audit.view', $request)) {
+            return $res;
         }
 
         $query = AuditLog::with('admin')->orderBy('created_at', 'desc');

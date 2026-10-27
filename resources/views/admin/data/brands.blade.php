@@ -5,6 +5,19 @@
 
 @section('content')
 <div class="space-y-6">
+    @if(session('success'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg flex items-center">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            {{ session('error') }}
+        </div>
+    @endif
+
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
@@ -75,12 +88,16 @@
                             {{ $brand->created_at->format('d.m.Y') }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="{{ route('admin.data.brands.edit', $brand) }}" class="text-blue-600 hover:text-blue-900 mr-3">
+                            <a href="{{ route('admin.data.brands.edit', $brand) }}" class="text-blue-600 hover:text-blue-900 mr-3" title="Düzenle">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <button class="text-red-600 hover:text-red-900">
+                            <button type="button" onclick="confirmDeleteBrand('{{ $brand->id }}', '{{ addslashes($brand->name) }}')" class="text-red-600 hover:text-red-900" title="Sil (Arşive Al)">
                                 <i class="fas fa-trash"></i>
                             </button>
+                            <form id="delete-brand-form-{{ $brand->id }}" action="{{ route('admin.data.brands.destroy', $brand) }}" method="POST" class="hidden">
+                                @csrf
+                                @method('DELETE')
+                            </form>
                         </td>
                     </tr>
                     @empty
@@ -136,4 +153,29 @@
         </div>
     </div>
 </div>
+
+<script>
+function confirmDeleteBrand(brandId, brandName) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Markayı Sil?',
+            text: `"${brandName}" markası arşive alınacaktır. Dilediğinizde geri getirebilirsiniz.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Evet, Sil',
+            cancelButtonText: 'İptal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('delete-brand-form-' + brandId).submit();
+            }
+        });
+    } else {
+        if (confirm(`"${brandName}" markasını silmek istediğinize emin misiniz?`)) {
+            document.getElementById('delete-brand-form-' + brandId).submit();
+        }
+    }
+}
+</script>
 @endsection

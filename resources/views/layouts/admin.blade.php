@@ -16,65 +16,81 @@
         <div id="sidebar" class="bg-gray-800 text-white w-64 h-full flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out fixed lg:static z-30">
             <div class="p-4 overflow-y-auto flex-1">
                 <!-- Navigation -->
-                <nav class="space-y-2">
+                    @php
+                        $currentAdmin = \App\Models\Admin::current();
+                    @endphp
+
                     <a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.dashboard') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-tachometer-alt mr-3"></i>
                         Panel
                     </a>
+
                     <a href="{{ route('admin.phones.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.phones.index') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-list mr-3"></i>
                         Telefonlar
                     </a>
+
+                    @if($currentAdmin && $currentAdmin->hasPermission('phones.create'))
                     <a href="{{ route('admin.phones.create') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.phones.create') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-plus mr-3"></i>
                         Telefon Ekle
                     </a>
+                    @endif
                     
+                    @if($currentAdmin && ($currentAdmin->hasPermission('customers.create') || $currentAdmin->hasPermission('customers.update') || $currentAdmin->isManager()))
                     <a href="{{ route('admin.customers.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.customers.*') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-users mr-3"></i>
                         Müşteriler
                     </a>
+                    @endif
                     
+                    @if($currentAdmin && ($currentAdmin->hasPermission('sales.create') || $currentAdmin->isManager()))
                     <a href="{{ route('admin.sales.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.sales.*') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-shopping-cart mr-3"></i>
                         Tüm Satışlar
                     </a>
+                    @endif
                     
+                    @if($currentAdmin && $currentAdmin->hasPermission('data.manage'))
                     <a href="{{ route('admin.data.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.data.*') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-database mr-3"></i>
                         Veri Yönetimi
                     </a>
+                    @endif
                     
+                    @if($currentAdmin && $currentAdmin->isAdmin())
                     <div class="pt-2">
                         <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Yönetim</p>
                     </div>
-                    
-                    @php
-                        $currentAdmin = \App\Models\Admin::find(session('admin_id'));
-                    @endphp
-                    @if($currentAdmin && $currentAdmin->isAdmin())
-                        <a href="{{ route('admin.admins.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.admins.*') ? 'bg-gray-700 text-white' : '' }}">
-                            <i class="fas fa-user-shield mr-3"></i>
-                            Admin Yönetimi
-                        </a>
-                        <a href="{{ route('admin.audit-logs.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.audit-logs.*') ? 'bg-gray-700 text-white' : '' }}">
-                            <i class="fas fa-history mr-3"></i>
-                            İşlem Geçmişi
-                        </a>
+                    <a href="{{ route('admin.admins.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.admins.*') ? 'bg-gray-700 text-white' : '' }}">
+                        <i class="fas fa-user-shield mr-3"></i>
+                        Admin Yönetimi
+                    </a>
+                    <a href="{{ route('admin.audit-logs.index') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.audit-logs.*') ? 'bg-gray-700 text-white' : '' }}">
+                        <i class="fas fa-history mr-3"></i>
+                        İşlem Geçmişi
+                    </a>
                     @endif
                     
+                    @if($currentAdmin && ($currentAdmin->hasPermission('reports.view') || $currentAdmin->hasPermission('settings.manage')))
                     <div class="pt-2">
                         <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Diğer</p>
                     </div>
+                    @endif
                     
+                    @if($currentAdmin && $currentAdmin->hasPermission('reports.view'))
                     <a href="{{ route('admin.reports') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.reports') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-chart-bar mr-3"></i>
                         Raporlar
                     </a>
+                    @endif
+
+                    @if($currentAdmin && $currentAdmin->hasPermission('settings.manage'))
                     <a href="{{ route('admin.settings') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.settings') ? 'bg-gray-700 text-white' : '' }}">
                         <i class="fas fa-cog mr-3"></i>
                         Ayarlar
                     </a>
+                    @endif
                    
                 </nav>
             </div>
