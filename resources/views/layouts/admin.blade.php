@@ -13,8 +13,8 @@
 <body class="bg-gray-100">
     <div class="flex h-screen">
         <!-- Sidebar -->
-        <div id="sidebar" class="bg-gray-800 text-white w-64 min-h-screen transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out fixed lg:static z-30">
-            <div class="p-4">
+        <div id="sidebar" class="bg-gray-800 text-white w-64 h-full flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out fixed lg:static z-30">
+            <div class="p-4 overflow-y-auto flex-1">
                 <!-- Navigation -->
                 <nav class="space-y-2">
                     <a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition duration-200 {{ request()->routeIs('admin.dashboard') ? 'bg-gray-700 text-white' : '' }}">
@@ -75,11 +75,25 @@
                         <i class="fas fa-cog mr-3"></i>
                         Ayarlar
                     </a>
+                   
                 </nav>
             </div>
 
-            <!-- Logout Button -->
-            <div class="absolute bottom-4 left-4 right-4">
+            <!-- Bottom Section (WhatsApp Support & Logout Button) -->
+            <div class="p-4 border-t border-gray-700 space-y-2">
+                <!-- WhatsApp Destek -->
+                <a href="https://wa.me/905459039584?text={{ urlencode('Merhaba, teknik destek almak istiyorum.') }}" target="_blank" rel="noopener noreferrer" class="w-full flex items-center justify-between px-3 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200 shadow-sm group">
+                    <div class="flex items-center">
+                        <i class="fab fa-whatsapp text-2xl mr-2.5 text-white"></i>
+                        <div class="text-left">
+                            <div class="text-xs font-semibold leading-tight">Teknik Destek</div>
+                            <div class="text-xs text-green-100 font-mono">0545 903 95 84</div>
+                        </div>
+                    </div>
+                    <i class="fas fa-external-link-alt text-xs text-green-200 group-hover:text-white transition duration-200"></i>
+                </a>
+
+                <!-- Çıkış Yap -->
                 <form action="{{ route('admin.logout') }}" method="POST">
                     @csrf
                     <button type="submit" class="w-full flex items-center px-4 py-2 text-gray-300 hover:bg-red-600 hover:text-white rounded-lg transition duration-200">
