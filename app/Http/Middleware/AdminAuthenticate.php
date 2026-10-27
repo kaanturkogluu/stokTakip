@@ -16,8 +16,16 @@ class AdminAuthenticate
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $isJson = $request->expectsJson() ||
+                  $request->isJson() ||
+                  $request->ajax() ||
+                  $request->wantsJson() ||
+                  $request->header('X-Requested-With') === 'XMLHttpRequest' ||
+                  str_contains((string)$request->header('Content-Type'), 'json') ||
+                  str_contains((string)$request->header('Accept'), 'json');
+
         if (!session('admin_logged_in') || !session('admin_id')) {
-            if ($request->expectsJson()) {
+            if ($isJson) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Lütfen giriş yapınız (Oturum bulunamadı).'
@@ -30,7 +38,7 @@ class AdminAuthenticate
 
         if (!$admin || !$admin->is_active) {
             session()->forget(['admin_logged_in', 'admin_id', 'admin_name', 'admin_email', 'admin_role']);
-            if ($request->expectsJson()) {
+            if ($isJson) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Hesabınız aktif değil veya silinmiş.'

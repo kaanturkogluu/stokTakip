@@ -102,6 +102,11 @@ class Admin extends Authenticatable
         }
 
         if ($this->permissions && is_array($this->permissions)) {
+            // Check direct permission match first
+            if (in_array($permission, $this->permissions)) {
+                return true;
+            }
+
             // Implicit view permissions for staff if they have any related action
             if ($permission === 'customers.view') {
                 return in_array('customers.create', $this->permissions) ||
@@ -120,7 +125,7 @@ class Admin extends Authenticatable
                 return in_array('sales.create', $this->permissions);
             }
 
-            return in_array($permission, $this->permissions);
+            return false;
         }
 
         return false;

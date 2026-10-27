@@ -4,6 +4,12 @@
 @section('page-title', 'Panel')
 
 @section('content')
+@php
+    $currentAdmin = \App\Models\Admin::current();
+    $canCreatePhone = $currentAdmin && $currentAdmin->hasPermission('phones.create');
+    $canViewPhones = $currentAdmin && $currentAdmin->hasPermission('phones.view');
+    $canCreateSale = $currentAdmin && $currentAdmin->hasPermission('sales.create');
+@endphp
 <div class="space-y-8">
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -61,9 +67,11 @@
     </div>
 
     <!-- Quick Actions - Center Section -->
+    @if($canCreatePhone || $canViewPhones || $canCreateSale)
     <div class="flex justify-center">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl w-full">
             <!-- Add New Phone -->
+            @if($canCreatePhone)
             <div class="bg-white rounded-xl shadow-lg p-8 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                 <div class="mb-6">
                     <div class="mx-auto w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -77,8 +85,10 @@
                     <i class="fas fa-plus mr-2"></i>Telefon Ekle
                 </a>
             </div>
+            @endif
 
             <!-- View All Phones -->
+            @if($canViewPhones)
             <div class="bg-white rounded-xl shadow-lg p-8 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                 <div class="mb-6">
                     <div class="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -92,8 +102,10 @@
                     <i class="fas fa-list mr-2"></i>Telefonları Görüntüle
                 </a>
             </div>
+            @endif
 
             <!-- Make Sale -->
+            @if($canCreateSale)
             <div class="bg-white rounded-xl shadow-lg p-8 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                 <div class="mb-6">
                     <div class="mx-auto w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4">
@@ -123,11 +135,14 @@
                     <i class="fas fa-undo mr-2"></i>Cihaz Geri Al
                 </button>
             </div>
+            @endif
         </div>
     </div>
+    @endif
 
 </div>
 
+@if($canCreateSale)
 <!-- Sale Modal -->
 <div id="saleModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -397,8 +412,19 @@ function searchPhone() {
 }
 
 function searchPhoneBySerial(serialNumber) {
-    fetch(`/admin/phones/search-by-serial?serial=${encodeURIComponent(serialNumber)}`)
-        .then(response => response.json())
+    fetch(`/admin/phones/search-by-serial?serial=${encodeURIComponent(serialNumber)}`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Yetki hatası');
+            }
+            return data;
+        })
         .then(data => {
             if (data.success && data.phone) {
                 currentPhone = data.phone;
@@ -407,7 +433,7 @@ function searchPhoneBySerial(serialNumber) {
                 document.getElementById('phoneInfo').classList.add('hidden');
                 document.getElementById('priceSection').style.display = 'none';
                 document.getElementById('saleButton').disabled = true;
-                alert('Bu seri numarasına sahip cihaz bulunamadı.');
+                alert(data.message || 'Bu seri numarasına sahip cihaz bulunamadı.');
             }
         })
         .catch(error => {
@@ -415,7 +441,7 @@ function searchPhoneBySerial(serialNumber) {
             document.getElementById('phoneInfo').classList.add('hidden');
             document.getElementById('priceSection').style.display = 'none';
             document.getElementById('saleButton').disabled = true;
-            alert('Arama sırasında bir hata oluştu.');
+            alert(error.message || 'Arama sırasında bir hata oluştu.');
         });
 }
 
@@ -757,6 +783,8 @@ function executeSale(serialNumber, salePrice, saleNote, saleDate, addToCustomers
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
             'X-CSRF-TOKEN': token
         },
         body: JSON.stringify({
@@ -773,15 +801,16 @@ function executeSale(serialNumber, salePrice, saleNote, saleDate, addToCustomers
             partial_amount: partialAmount
         })
     })
-    .then(response => {
+    .then(async response => {
         console.log('Response status:', response.status);
         console.log('Response headers:', response.headers);
         
+        const data = await response.json();
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(data.message || `HTTP error! status: ${response.status}`);
         }
         
-        return response.json();
+        return data;
     })
     .then(data => {
         console.log('Response data:', data);
@@ -831,7 +860,9 @@ function executeSale(serialNumber, salePrice, saleNote, saleDate, addToCustomers
     });
 }
 </script>
+@endif
 
+@if($canCreateSale)
 <!-- Repurchase Modal -->
 <div id="repurchaseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -964,8 +995,19 @@ function searchRepurchasePhone() {
 }
 
 function searchRepurchasePhoneBySerial(serialNumber) {
-    fetch(`/admin/phones/search-by-serial?serial=${encodeURIComponent(serialNumber)}`)
-        .then(response => response.json())
+    fetch(`/admin/phones/search-by-serial?serial=${encodeURIComponent(serialNumber)}`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Yetki hatası');
+            }
+            return data;
+        })
         .then(data => {
             if (data.success && data.phone) {
                 // Check if phone is sold
@@ -1149,6 +1191,8 @@ function executeRepurchase(phoneId, repurchasePrice, repurchaseNote) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
             'X-CSRF-TOKEN': token
         },
         body: JSON.stringify({
@@ -1157,7 +1201,13 @@ function executeRepurchase(phoneId, repurchasePrice, repurchaseNote) {
             repurchase_note: repurchaseNote
         })
     })
-    .then(response => response.json())
+    .then(async response => {
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || `HTTP error! status: ${response.status}`);
+        }
+        return data;
+    })
     .then(data => {
         if (data.success) {
             Swal.fire({
@@ -1202,4 +1252,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+@endif
 @endsection

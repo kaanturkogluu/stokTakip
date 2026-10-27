@@ -933,8 +933,16 @@ class AdminController extends Controller
     // Sale functionality
     public function searchPhoneBySerial(Request $request)
     {
-        if (!session('admin_logged_in')) {
+        $currentAdmin = Admin::current();
+        if (!$currentAdmin) {
             return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        if (!$currentAdmin->hasPermission('phones.view') && !$currentAdmin->hasPermission('sales.create')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bu işlem için yetkiniz bulunmamaktadır.'
+            ], 403);
         }
 
         $serialNumber = $request->get('serial');

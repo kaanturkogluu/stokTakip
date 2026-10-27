@@ -18,8 +18,16 @@ class CheckAdminPermission
     {
         $admin = $request->attributes->get('current_admin') ?: Admin::current();
 
+        $isJson = $request->expectsJson() ||
+                  $request->isJson() ||
+                  $request->ajax() ||
+                  $request->wantsJson() ||
+                  $request->header('X-Requested-With') === 'XMLHttpRequest' ||
+                  str_contains((string)$request->header('Content-Type'), 'json') ||
+                  str_contains((string)$request->header('Accept'), 'json');
+
         if (!$admin || !$admin->is_active) {
-            if ($request->expectsJson()) {
+            if ($isJson) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Yetkisiz erişim: Giriş yapmalısınız.'
@@ -29,7 +37,7 @@ class CheckAdminPermission
         }
 
         if (!$admin->hasPermission($permission)) {
-            if ($request->expectsJson()) {
+            if ($isJson) {
                 return response()->json([
                     'success' => false,
                     'message' => "Bu işlem ({$permission}) için yetkiniz bulunmamaktadır."
